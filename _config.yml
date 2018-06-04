@@ -5,7 +5,7 @@ paginate: 100 # it will paginate after this number
 language: 'en-uk'
 
 # edit baseurl to simply '/' if using as your personal page (instead of a project page)
-baseurl: /felix.ng/
+baseurl: /
 
 # Website info
 title: London based Developer | Felix Ng
@@ -14,7 +14,7 @@ cover: assets/images/blog-cover.jpg
 logo: assets/images/blog-icon.png
 logo_dark: assets/images/favicon.png
 favicon: assets/images/favicon.png
-production_url: https://felixng.github.io/felix.ng/
+production_url: https://felix.ng/
 source_url: https://github.com/felixng/felix.ng/
 
 # Social info
@@ -71,7 +71,7 @@ repo: felix.ng
 branch: master
 relative_source: ../felixng/
 destination: docs
-production_url:  https://felixng.github.io/felix.ng/
+production_url:  https://felix.ng/
 source_url:  https://github.com/felixng/felix.ng/
 
 exclude:
