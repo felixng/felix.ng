@@ -7,10 +7,25 @@ subclass: 'post page'
 navigation: False
 ---
 
-🚀 Ghost is professional publishing platform designed for modern journalism. This is a demo site of a basic Ghost install to give you a general sense of what a new Ghost site looks like when set up for the first time.
+Hong Konger in London, working as a software developer at decent tech company. Passionate about a lot of things, check out what I am working on [now](https://felix.ng/now) 💡
 
-> If you'd like to set up a site like this for yourself, head over to [Ghost.org](https://ghost.org/) and start a free 14 day trial to give Ghost a try!	
+### 💻 Work
 
-If you're a developer: Ghost is a completely open source (MIT) Node.js application built on a JSON API with an Ember.js admin client. It works with MySQL and SQLite, and is publicly available [on Github](https://github.com/TryGhost/ghost).
+Previously worked as a proper corporate monkey - a Web Developer at [Euromoney](http://www.euromoneyplc.com/), one of Europe's largest business and financial magazine publishers. Worked in the Hong Kong office, and their London headquarters.
+Now Software Developer at [Trainline](https://thetrainline.com/), coding all the payment related services and APIs.
 
-If you need help with using Ghost, you'll find a ton of useful articles on [our knowledgebase](https://help.ghost.org/), as well as extensive [developer documentation](https://docs.ghost.org/).
+### 🚀 Side Projects
+
+Strong believer of side projects and indie businesses. Fiddled with a lot of random ideas and projects related to my passions. None has worked out well enough to make me good money, but none has stopped me from trying.
+
+### 🏋 What else do I do?
+
+I code and I travel. I go to theatre, a lot. I also dance, tumble and practise handbalancing. Trying to bulk up, as well as keeping and/or improving my mobility so that I can continue doing those things.
+
+### 🙌 Successes
+
+Relocated across the globe. Lived in three continents. Travel often, and relatively healthy.
+
+### 🤦‍ Failures
+
+Still yet to figure out what I actually want, and still being a corporate monkey of some sort.  Continously define myself by other people's view, yet find a way to accept myself as who I am.  And I hardly save any money.
