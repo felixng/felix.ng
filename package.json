@@ -1,7 +1,7 @@
 {
-    "name": "casper",
-    "description": "The default personal blogging theme for Ghost. Beautiful, minimal and responsive.",
-    "demo": "https://demo.ghost.io",
+    "name": "felixng",
+    "description": "Personal site built on Jekyll with Jasper2 theme",
+    "demo": "https://felix.ng",
     "version": "2.1.9",
     "engines": {
         "ghost": ">=1.2.0"
@@ -12,27 +12,26 @@
         "mobile": "assets/screenshot-mobile.jpg"
     },
     "author": {
-        "name": "Ghost Foundation",
-        "email": "hello@ghost.org",
-        "url": "https://ghost.org"
+        "name": "Felix Ng",
+        "email": "hello@felix.ng",
+        "url": "https://felix.ng"
     },
     "gpm": {
         "type": "theme",
         "categories": [
-            "Minimal",
-            "Magazine"
+            "Minimal"
         ]
     },
     "keywords": [
-        "ghost",
-        "theme"
+        "london",
+        "developer"
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/TryGhost/Casper.git"
+        "url": "https://github.com/felixng/felix.ng.git"
     },
-    "bugs": "https://github.com/TryGhost/Casper/issues",
-    "contributors": "https://github.com/TryGhost/Casper/graphs/contributors",
+    "bugs": "https://github.com/felixng/felix.ng/issues",
+    "contributors": "https://github.com/felixng/felix.ng/graphs/contributors",
     "devDependencies": {
         "autoprefixer": "6.3.6",
         "cssnano": "3.7.1",
