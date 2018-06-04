@@ -17,11 +17,15 @@ Now Software Developer at [Trainline](https://thetrainline.com/), coding all the
 
 #### 🚀 Side Projects
 
-Strong believer of side projects and indie businesses. Fiddled with a lot of random ideas and projects related to my passions. None has worked out well enough to make me good money, but none has stopped me from trying.
+Strong believer of side projects and indie businesses. Fiddled with a lot of random ideas and projects related to my passions. 
+
+None has worked out well enough to make me good money, but none has stopped me from trying.
 
 #### 🏋 What else do I do?
 
-I code and I travel. I go to theatre, a lot. I also dance, tumble and practise handbalancing. Trying to bulk up, as well as keeping and/or improving my mobility so that I can continue doing those things.
+I code and I travel. I go to theatre, a lot. I also dance, tumble and practise handbalancing. 
+
+Trying to bulk up, as well as keeping and/or improving my mobility so that I can continue doing these things.
 
 #### 🙌 Successes
 
