@@ -1924,11 +1924,11 @@ Usage (In Ghost editor):
 }
 
 .bio .post-full-title {
-    background: linear-gradient(80deg, #ffffff 35%, var(--brand) 35%, var(--brand) 65%, #ffffff 65%);
+    background: linear-gradient(80deg, #ffffff 33%, var(--brand) 33%, var(--brand) 67%, #ffffff 67%);
 }
 
 @media (max-width: 650px) {
     .bio .post-full-title {
-        background: linear-gradient(80deg, #ffffff 10%, var(--brand) 10%, var(--brand) 90%, #ffffff 90%);
+        background: linear-gradient(80deg, #ffffff 23%, var(--brand) 23%, var(--brand) 77%, #ffffff 77%);
     }
 }
