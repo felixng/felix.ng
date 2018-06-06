@@ -1922,3 +1922,13 @@ Usage (In Ghost editor):
 .bio p:first-of-type {
     text-align: center;
 }
+
+.bio .post-full-title {
+    background: linear-gradient(80deg, #ffffff 35%, var(--brand) 35%, var(--brand) 65%, #ffffff 65%);
+}
+
+@media (max-width: 650px) {
+    .bio .post-full-title {
+        background: linear-gradient(80deg, #ffffff 10%, var(--brand) 10%, var(--brand) 90%, #ffffff 90%);
+    }
+}
