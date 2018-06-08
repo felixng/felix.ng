@@ -8,7 +8,7 @@ navigation: False
 ---
 
 Hong Konger in London, working as a software developer at a tech company. Passionate about a lot of things. 
-Check out what I am working on [now](https://felix.ng/now) 💡
+Strong believer of side projects and indie businesses. Check out what I am working on [now](/now) 💡
 
 #### 💻 Work
 
@@ -18,13 +18,15 @@ Now Software Developer at [Trainline](https://thetrainline.com/), coding all the
 
 #### 🚀 Side Projects
 
-Strong believer of side projects and indie businesses. Fiddled with a lot of random ideas and projects related to my passions. 
+ Fiddled with a lot of random ideas and projects related to my passions. 
 
-None has worked out well enough to make me good money, but none has stopped me from keep on trying.
+[MVMT](https://mvmt.felix.ng), a directory of the top movement related studios and centres in London. [Project Curious Name](https://curiousincident.herokuapp.com/) that calculates if the alphabets of your name add up to a prime number. Inspired by the awards-winning theatrical play [The Curious Incident of the Dog in the Night-Time](https://www.nationaltheatre.org.uk/shows/the-curious-incident-of-the-dog-in-the-night-time), where they have a small price for audience members with a prime number name.
+
+None has worked out well enough to make me good money, but none has stopped me from keep on trying. I also keep a [list](/inspirations) of people/projects that keep on inspiring me.
 
 #### 🏋 What else do I do?
 
-I code and I travel. I go to theatre, a lot. I also dance, tumble and practise handbalancing. 
+I code and I travel. I go to theatre, a lot. I also dance, tumble and practise [handbalancing](http://thecircusdictionary.com/moves/?category=hand-balance).
 
 Trying to bulk up, as well as keeping and/or improving my mobility so that I can continue doing these things.
 
