@@ -22,7 +22,8 @@ Now Software Developer at [Trainline](https://thetrainline.com/), coding all the
 
 [MVMT](https://mvmt.felix.ng), a directory of the top movement related studios and centres in London. [Project Curious Name](https://curiousincident.herokuapp.com/) that calculates if the alphabets of your name add up to a prime number. Inspired by the awards-winning theatrical play [The Curious Incident of the Dog in the Night-Time](https://www.nationaltheatre.org.uk/shows/the-curious-incident-of-the-dog-in-the-night-time), where they have a small price for audience members with a prime number name.
 
-None has worked out well enough to make me good money, but none has stopped me from keep on trying. I also keep a [list](/inspirations) of people/projects that keep on inspiring me.
+None has worked out well enough to make me good money, but none has stopped me from keep on trying. 
+<!-- I also keep a [list](/inspirations) of people/projects that keep on inspiring me. -->
 
 #### 🏋 What else do I do?
 
