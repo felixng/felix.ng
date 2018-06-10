@@ -3,9 +3,10 @@ layout: page
 current: about
 title: About
 logo: 'assets/images/felix.png'
-class: page-template
+class: clean-template
 subclass: 'post page'
 date: 06/06/2018
+navigation: True
 ---
 
 #### Where's Sunny This Weekend?

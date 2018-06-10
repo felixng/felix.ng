@@ -110,7 +110,7 @@ body {
     padding-top: 12px;
     padding-bottom: 12px;
     color: #fff;
-    background: color(var(--darkgrey) l(-5%)) no-repeat center center;
+    background: color(var(--brand) l(55%)) no-repeat center center;
     background-size: cover;
 }
 
@@ -123,7 +123,7 @@ body {
     left: 0;
     z-index: 10;
     display: block;
-    background: rgba(0,0,0,0.18);
+    /*background: rgba(0,0,0,0.18);*/
 }
 
 .site-header:after {
@@ -136,7 +136,7 @@ body {
     z-index: 10;
     display: block;
     height: 80px;
-    background: linear-gradient(rgba(0,0,0,0.1),rgba(0,0,0,0));
+    /*background: linear-gradient(rgba(0,0,0,0.1),rgba(0,0,0,0));*/
 }
 
 .site-header.no-cover:before,
@@ -186,10 +186,23 @@ body {
     }
 }
 
+.clean-template .site-header,
+.clean-template .site-header:before {
+    background: none !important;
+}
+
+.clean-template .site-header a, 
+.clean-template .site-header .social-link svg {
+    color: var(--darkgrey) !important;
+    fill: var(--darkgrey) !important;
+}
+
+.clean-template .site-header .social-link svg {
+    fill-opacity: 0.75;
+}
 
 /* 5. Site Navigation
 /* ---------------------------------------------------------- */
-
 .site-nav {
     position: relative;
     z-index: 300;
@@ -572,7 +585,7 @@ The first (most recent) post in the list is styled to be bigger than the others 
 }
 
 .post-full-meta-date {
-    color: var(--blue);
+    color: var(--brand);
 }
 
 .post-full-title {
@@ -704,12 +717,12 @@ The first (most recent) post in the list is styled to be bigger than the others 
 
 .post-full-content a {
     color: #000;
-    /*box-shadow: var(--blue) 0 -2px 0 inset;*/
+    /*box-shadow: var(--brand) 0 -2px 0 inset;*/
     border-bottom: 2px solid var(--brand);
 }
 
 .post-full-content a:hover {
-    color: var(--blue);
+    color: var(--brand);
     text-decoration: none;
 }
 
@@ -777,7 +790,7 @@ Usage (In Ghost editor):
 .post-full-content blockquote {
     margin: 0 0 1.5em;
     padding: 0 1.5em;
-    border-left: #3eb0ef 3px solid;
+    border-left: var(--brand) 3px solid;
 }
 
 .post-full-content blockquote p {
@@ -906,7 +919,7 @@ Usage (In Ghost editor):
     margin: 0.5em 0;
     padding: 1em 0 1.5em;
     border: 0;
-    color: var(--blue);
+    color: var(--brand);
     font-family: Georgia,serif;
     font-size: 3.2rem;
     line-height: 1.35em;
@@ -949,7 +962,7 @@ Usage (In Ghost editor):
 }
 
 .footnote-backref {
-    color: var(--blue) !important;
+    color: var(--brand) !important;
     font-size: 1.2rem;
     font-weight: bold;
     text-decoration: none !important;
@@ -1106,10 +1119,10 @@ Usage (In Ghost editor):
     text-align: center;
     text-shadow: 0 -1px 0 rgba(0,0,0,0.1);
     background: linear-gradient(
-    color(var(--blue) whiteness(+7%)),
-    color(var(--blue) lightness(-7%) saturation(-10%)) 60%,
-    color(var(--blue) lightness(-7%) saturation(-10%)) 90%,
-    color(var(--blue) lightness(-4%) saturation(-10%))
+    color(var(--brand) whiteness(+7%)),
+    color(var(--brand) lightness(-7%) saturation(-10%)) 60%,
+    color(var(--brand) lightness(-7%) saturation(-10%)) 90%,
+    color(var(--brand) lightness(-4%) saturation(-10%))
     );
     border-radius: 5px;
     box-shadow: 0 0 0 1px inset rgba(0,0,0,0.14);
@@ -1119,7 +1132,7 @@ Usage (In Ghost editor):
 
 .subscribe-form button:active,
 .subscribe-form button:focus {
-    background: color(var(--blue) lightness(-9%) saturation(-10%));
+    background: color(var(--brand) lightness(-9%) saturation(-10%));
 }
 
 @media (max-width: 650px) {
@@ -1207,8 +1220,8 @@ Usage (In Ghost editor):
 }
 
 .author-card-button:hover {
-    border-color: var(--blue);
-    color: var(--blue);
+    border-color: var(--brand);
+    color: var(--brand);
     text-decoration: none;
 }
 
@@ -1500,7 +1513,7 @@ Usage (In Ghost editor):
     width: 100%;
     height: 2px;
     border: none;
-    color: var(--blue);
+    color: var(--brand);
     background: transparent;
 
     appearance: none;
@@ -1511,11 +1524,11 @@ Usage (In Ghost editor):
 }
 
 .progress::-webkit-progress-value {
-    background-color: var(--blue);
+    background-color: var(--brand);
 }
 
 .progress::-moz-progress-bar {
-    background-color: var(--blue);
+    background-color: var(--brand);
 }
 
 .progress-container {
@@ -1532,7 +1545,7 @@ Usage (In Ghost editor):
     display: block;
     width: 50%;
     height: inherit;
-    background-color: var(--blue);
+    background-color: var(--brand);
 }
 
 @media (max-width: 900px) {
@@ -1795,10 +1808,10 @@ Usage (In Ghost editor):
     text-align: center;
     text-shadow: 0 -1px 0 rgba(0,0,0,0.1);
     background: linear-gradient(
-    color(var(--blue) whiteness(+7%)),
-    color(var(--blue) lightness(-7%) saturation(-10%)) 60%,
-    color(var(--blue) lightness(-7%) saturation(-10%)) 90%,
-    color(var(--blue) lightness(-4%) saturation(-10%))
+    color(var(--brand) whiteness(+7%)),
+    color(var(--brand) lightness(-7%) saturation(-10%)) 60%,
+    color(var(--brand) lightness(-7%) saturation(-10%)) 90%,
+    color(var(--brand) lightness(-4%) saturation(-10%))
     );
     border-radius: 8px;
     box-shadow: 0 0 0 1px inset rgba(0,0,0,0.14);
@@ -1808,7 +1821,7 @@ Usage (In Ghost editor):
 
 .subscribe-overlay button:active,
 .subscribe-overlay button:focus {
-    background: color(var(--blue) lightness(-9%) saturation(-10%));
+    background: color(var(--brand) lightness(-9%) saturation(-10%));
 }
 
 .subscribe-overlay-close {

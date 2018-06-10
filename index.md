@@ -2,9 +2,9 @@
 layout: page
 current: home
 title: '@hellofelixng'
-class: page-template
+class: clean-template
 subclass: 'post page bio'
-navigation: False
+navigation: True
 ---
 
 Hong Konger in London, working as a software developer at a tech company. Passionate about a lot of things. 
