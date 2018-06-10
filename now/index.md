@@ -1,7 +1,7 @@
 ---
 layout: page
-current: about
-title: About
+current: now
+title: What am I working on now?
 logo: 'assets/images/felix.png'
 class: clean-template
 subclass: 'post page'
