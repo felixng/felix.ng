@@ -1960,7 +1960,6 @@ Usage (In Ghost editor):
     font-weight: 700;
     line-height: 1.15;
     text-rendering: optimizeLegibility;
-    padding-bottom: 3vw;
 }
 
 @media (max-width: 650px) {
