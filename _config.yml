@@ -8,6 +8,7 @@ language: 'en-uk'
 baseurl: /
 
 # Website info
+short_title: '@hellofelixng'
 title: Felix Ng | London based Developer
 description: 
 cover: assets/images/blog-cover.jpg

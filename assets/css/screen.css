@@ -201,6 +201,14 @@ body {
     fill-opacity: 0.75;
 }
 
+.clean-template .post-full-header {
+    padding: 1.5vw !important;
+}
+
+.clean-template .post-full-header h1.post-full-title {
+    font-size: 3rem !important;
+}
+
 /* 5. Site Navigation
 /* ---------------------------------------------------------- */
 .site-nav {
@@ -623,7 +631,7 @@ The first (most recent) post in the list is styled to be bigger than the others 
 .post-full-content {
     position: relative;
     margin: 0.4 auto;
-    padding: 70px 100px 0;
+    padding: 70px 100px;
     min-height: 230px;
     font-size: 1.7rem;
     line-height: 1.75em;
@@ -632,7 +640,7 @@ The first (most recent) post in the list is styled to be bigger than the others 
 
 @media (max-width: 1170px) {
     .post-full-content {
-        padding: 5vw 7vw 0;
+        padding: 5vw 7vw;
     }
 }
 @media (max-width: 800px) {
@@ -1927,6 +1935,10 @@ Usage (In Ghost editor):
     }
 }
 
+
+/* 11. Custom Bio Page
+/* ---------------------------------------------------------- */
+
 .bio{
     width: 80%;
     margin: auto;
@@ -1936,12 +1948,23 @@ Usage (In Ghost editor):
     text-align: center;
 }
 
-.bio .post-full-title {
-    background: linear-gradient(80deg, #ffffff 33%, var(--brand) 33%, var(--brand) 67%, #ffffff 67%);
+/* 11. Custom Header
+/* ---------------------------------------------------------- */
+.felix {
+    background: linear-gradient(80deg, #ffffff 38%, var(--brand) 38%, var(--brand) 62%, #ffffff 62%);
+
+    color: var(--darkgrey);
+    text-align: center;
+    margin: 0.5em 0 0.2em 0;
+    font-size: 5rem;
+    font-weight: 700;
+    line-height: 1.15;
+    text-rendering: optimizeLegibility;
+    padding-bottom: 3vw;
 }
 
 @media (max-width: 650px) {
-    .bio .post-full-title {
+    .felix {
         background: linear-gradient(80deg, #ffffff 23%, var(--brand) 23%, var(--brand) 77%, #ffffff 77%);
     }
 }

@@ -1,4 +1,4 @@
----
+--- 
 layout: default
 current: page
 class: page-template
@@ -13,6 +13,7 @@ into the {body} of the default.hbs template -->
 <header class="site-header outer">
     <div class="inner">
         {% include simple-nav.html %}
+        {% include felixng.html %}
     </div>
 </header>
 
@@ -23,11 +24,12 @@ into the {body} of the default.hbs template -->
     <div class="inner">
 
         <article class="post-full {{ page.subclass }} {% unless page.cover %}no-image{% endunless %}">
-
+            {% if page.title %}
             <header class="post-full-header">
                 <h1 class="post-full-title">{{ page.title }}</h1>
             </header>
-
+            {% endif %}
+            
             {% if page.cover %}
             <figure class="post-full-image" style="background-image: url({{ site.baseurl }}{{ page.cover }})">
             </figure>

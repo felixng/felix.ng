@@ -1,7 +1,6 @@
 ---
 layout: page
 current: home
-title: '@hellofelixng'
 class: clean-template
 subclass: 'post page bio'
 navigation: True
