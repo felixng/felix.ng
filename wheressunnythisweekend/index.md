@@ -12,8 +12,8 @@ navigation: True
 
 _Where's Sunny This Weekend?_ is a project I am currently working on for fun. A fellow London living friend who was left behind by his wife wanted to go somewhere sunny for a weekend away in Feburary, yet failed to locate a single sunny city nearby through searching one by one on Weather.com.
 
-> If only there is a web app that shows me where's sunny I could go to this weekend, without me having to search city by city, that would be awesome.
+> If only there is a web app that shows me where's sunny I could visit this weekend, without me having to search city by city, that would be awesome!
 
-This is how this mini project was born.  It also serves as a side project to revive my passion in building little things that excites me.
+This is how this mini-project was born.  It also serves as a side project to revive my passion in building little things that excite me outside of work. :)
 
 Last Updated: {{ page.last_modified_at | date: "%d %B %Y" }}
