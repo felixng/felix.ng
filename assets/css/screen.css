@@ -1951,7 +1951,7 @@ Usage (In Ghost editor):
 /* 11. Custom Header
 /* ---------------------------------------------------------- */
 .felix {
-    background: linear-gradient(80deg, #ffffff 38%, var(--brand) 38%, var(--brand) 62%, #ffffff 62%);
+    background: linear-gradient(80deg, #ffffff 38%, var(--brand-1) 38%, var(--brand-2) 62%, #ffffff 62%);
 
     color: var(--darkgrey);
     text-align: center;
@@ -1964,6 +1964,6 @@ Usage (In Ghost editor):
 
 @media (max-width: 650px) {
     .felix {
-        background: linear-gradient(80deg, #ffffff 23%, var(--brand) 23%, var(--brand) 77%, #ffffff 77%);
+        background: linear-gradient(80deg, #ffffff 23%, var(--brand-1) 23%, var(--brand-2) 77%, #ffffff 77%);
     }
 }

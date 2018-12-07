@@ -4,7 +4,10 @@
 :root {
     /* Colours */
     /*--brand: #00ffd5;*/
-    --brand: #FE0069;
+    /* --brand: #FE0069; */
+    --brand-1: #028090;
+    --brand-2: #02C39A;
+    --brand: #02C39A;
     --blue: #3eb0ef;
     --green: #a4d037;
     --purple: #ad26b4;

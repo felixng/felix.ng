@@ -30,10 +30,10 @@ I code and I travel. I go to theatre, a lot. I also dance, tumble and practise [
 
 Trying to bulk up, as well as keeping and/or improving my mobility so that I can continue doing these things.
 
-#### 🙌 Successes
+<!-- #### 🙌 Successes
 
 Relocated across the globe. Lived in three continents. Travel often, and relatively healthy.
 
 #### 🤦‍ Failures
 
-Yet to figure out what I actually want. Still being a corporate monkey of some sort.  Continously define myself by other people's view, yet find a way to accept myself as who I am. Hardly save any money.
+Yet to figure out what I actually want. Still being a corporate monkey of some sort.  Continously define myself by other people's view, yet find a way to accept myself as who I am. Hardly save any money. -->
