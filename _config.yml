@@ -15,7 +15,7 @@ cover: assets/images/blog-cover.jpg
 logo: assets/images/blog-icon.png
 logo_dark: assets/images/favicon.png
 favicon: assets/images/favicon.png
-production_url: https://felix.ng/
+production_url: https://felix.ng
 source_url: https://github.com/felixng/felix.ng/
 
 # Social info
