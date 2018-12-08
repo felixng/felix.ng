@@ -23,9 +23,7 @@ Some useful exercises and workshop from DockerCon Europe 2018
 
 #### Dockerizing Legacy App
 
-- [Video (.NET)](https://www.youtube.com/playlist?list=PLkA60AVN3hh8mDYH0V8XpLpjzDHXrReFN){:target="_blank"}
-
-- [Video (Java)](https://www.youtube.com/playlist?list=PLkA60AVN3hh8g4jRgxQQM7nlpoC9wqJml){:target="_blank"}
+- [Video (.NET)](https://www.youtube.com/playlist?list=PLkA60AVN3hh8mDYH0V8XpLpjzDHXrReFN){:target="_blank"} / [Video (Java)](https://www.youtube.com/playlist?list=PLkA60AVN3hh8g4jRgxQQM7nlpoC9wqJml){:target="_blank"}
 
 - [Demos (Github)](https://github.com/sixeyed/presentations/tree/master/dockercon/2018-barcelona/patterns-app-modernization){:target="_blank"}
 
