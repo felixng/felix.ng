@@ -11,9 +11,9 @@ Some useful exercises and workshop from DockerCon Europe 2018
 
 #### Docker Fundamental (2-Day Training Course)
 
-- [Lab Exercises (HTML)](/dockercon2018/docker-fundamentals-lab/){:target="_blank"} / [Lab Exercises (PDF)](/assets/fundamentals-linux-exercises.pdf){:target="_blank"}
-
 - [Slides](/assets/docker-fundamentals.pdf){:target="_blank"}
+
+- [Lab Exercises (HTML)](/dockercon2018/docker-fundamentals-lab/){:target="_blank"} / [Lab Exercises (PDF)](/assets/fundamentals-linux-exercises.pdf){:target="_blank"}
 
 #### Docker for Enterprise Developers (2-Day Training Course)
 
