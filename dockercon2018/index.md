@@ -9,11 +9,13 @@ navigation: True
 
 Some useful exercises and workshop from DockerCon Europe 2018
 
-#### Docker Fundamental
+#### Docker Fundamental 2-Day Training
 
-- [Docker Fundamental Lab Exercises](https://dockercon2018.felix.ng/docker-fundamentals-lab/){:target="_blank"}
+- [Lab Exercises (HTML)](https://dockercon2018.felix.ng/docker-fundamentals-lab/){:target="_blank"} / [Lab Exercises (PDF)](/assets/fundamentals-linux-exercises.pdf){:target="_blank"}
 
-#### Docker for Enterprise Developers
+- [Slides](/assets/docker-fundamentals.pdf){:target="_blank"}
+
+#### Docker for Enterprise Developers 2-Day Training
 
 - [Docker for Enterprise Developers Slides](https://dockercon2018.felix.ng/docker-for-enterprise-developers-slides/){:target="_blank"} 
 
