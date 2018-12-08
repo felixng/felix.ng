@@ -17,9 +17,9 @@ Some useful exercises and workshop from DockerCon Europe 2018
 
 #### Docker for Enterprise Developers 2-Day Training
 
-- [Docker for Enterprise Developers Slides](https://dockercon2018.felix.ng/docker-for-enterprise-developers-slides/){:target="_blank"} 
+- [Slides](https://dockercon2018.felix.ng/docker-for-enterprise-developers-slides/){:target="_blank"} 
 
-- [Docker for Enterprise Developers Lab Exercises](https://dockercon2018.felix.ng/docker-for-enterprise-developers-lab/){:target="_blank"} 
+- [Lab Exercises](https://dockercon2018.felix.ng/docker-for-enterprise-developers-lab/){:target="_blank"} 
 
 #### Dockerizing Legacy App
 
