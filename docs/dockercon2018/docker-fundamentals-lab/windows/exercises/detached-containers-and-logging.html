@@ -1,0 +1,89 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="detached-containers-and-logging">Detached Containers and Logging</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Run a container detached from the terminal</li>
+<li>Fetch the logs of a container</li>
+<li>Attach a terminal to the STDOUT of a running container</li>
+</ul>
+<h2 id="running-a-container-in-the-background">Running a Container in the Background</h2>
+<ol>
+<li><p>First try running a container as usual; the STDOUT and STDERR streams from the main containerized process are directed to the terminal:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run microsoft/nanoserver ping 8.8.8.8 -n 2
+
+Pinging 8.8.8.8 with 32 bytes of data:
+Reply from 8.8.8.8: bytes=32 time=1ms TTL=113
+Reply from 8.8.8.8: bytes=32 time=1ms TTL=113
+
+Ping statistics for 8.8.8.8:
+    Packets: Sent = 2, Received = 2, Lost = 0 (0% loss),
+Approximate round trip times in milli-seconds:
+    Minimum = 1ms, Maximum = 1ms, Average = 1ms
+</code></pre>
+</li>
+<li><p>The same process can be run in the background with the <code>-d</code> flag:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run -d microsoft/nanoserver ping 8.8.8.8 -t
+
+5505012d74b3480a0a05ebd0ca1d256d08edc1916ef19d56fbe728bc3cecc502
+</code></pre>
+<p>This time, we only see the container&#39;s ID; its STDOUT isn&#39;t being sent to the terminal.</p>
+</li>
+<li><p>Use this second container&#39;s ID to inspect the logs it generated:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container logs &lt;container ID&gt;
+</code></pre>
+<p>These logs correspond to STDOUT and STDERR from all processes running in the container. Also note when using container IDs: you don&#39;t need to specify the entire ID. Just enough characters from the start of the ID to uniquely identify it, often just 2 or 3, is sufficient.</p>
+</li>
+</ol>
+<h2 id="attaching-to-container-output">Attaching to Container Output</h2>
+<ol>
+<li><p>We can attach a terminal to a container&#39;s main process output with the <code>attach</code> command; try it with the last container you made in the previous step:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container attach &lt;container ID&gt;
+</code></pre>
+</li>
+<li><p>We can leave attached mode by then pressing <code>CTRL+C</code>. Note that the container still happily runs in the background as you can confirm with <code>docker container ls</code>.</p>
+</li>
+</ol>
+<h2 id="using-logging-options">Using Logging Options</h2>
+<ol>
+<li><p>We saw previously how to read the entire log of a container&#39;s main process; we can also use a couple of flags to control what logs are displayed. <code>--tail n</code> limits the display to the last n lines; try it with the container that should be running from the last step:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container logs --tail 5 &lt;container ID&gt;
+</code></pre>
+<p>You should see the last 5 pings from this container.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, we saw our first detached containers. Almost all containers you ever run will be running in detached mode; you can use <code>container attach</code> to interact with their main processes, as well as <code>container logs</code> to fetch their logs. Note that both <code>attach</code> and <code>logs</code> interact with the main process only - if you launch child processes inside a container, it&#39;s up to you to manage their STDOUT and STDERR streams.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

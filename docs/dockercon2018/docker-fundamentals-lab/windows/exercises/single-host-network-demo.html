@@ -1,0 +1,222 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="instructor-demo-single-host-networks">Instructor Demo: Single Host Networks</h1>
+<p>In this demo, we&#39;ll illustrate:</p>
+<ul>
+<li>The networking stack created for the default Docker <code>nat</code> network</li>
+<li>Attaching containers to docker networks</li>
+<li>Inspecting networking metadata</li>
+<li>How network adapters appear in different network namespaces</li>
+</ul>
+<h2 id="following-default-docker-networking">Following Default Docker Networking</h2>
+<ol>
+<li><p>On a fresh node you haven&#39;t run any containers on yet, list your networks:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; docker network ls
+
+NETWORK ID          NAME                DRIVER              SCOPE
+03f6ddacab50        nat                 nat                 local
+b0de36ba94f3        none                null                local
+</code></pre>
+</li>
+<li><p>Get some metadata about the <code>nat</code> network, which is the default network containers attach to when doing <code>docker container run</code>:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; docker network inspect nat
+</code></pre>
+<p>Notice the <code>IPAM</code> section:</p>
+<pre><code class="lang-json">&quot;IPAM&quot;: {
+    &quot;Driver&quot;: &quot;windows&quot;,
+    &quot;Options&quot;: null,
+    &quot;Config&quot;: [
+        {
+            &quot;Subnet&quot;: &quot;172.20.128.0/20&quot;,
+            &quot;Gateway&quot;: &quot;172.20.128.1&quot;
+        }
+    ]
+}
+</code></pre>
+<p>Docker&#39;s IP address management driver assigns a subnet (<code>172.20.128.0/20</code> in this case) to each nat network, and uses the first IP in that range as the network&#39;s gateway.</p>
+<p>Also note the <code>containers</code> key:</p>
+<pre><code class="lang-json">&quot;Containers&quot;: {}
+</code></pre>
+<p>So far, no containers have been plugged into this network.</p>
+</li>
+<li><p>The <code>nat</code> Docker network is composed of a hyper-v virtual switch, and network address translation provided by WinNAT. List your virtual switches:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; Get-VMSwitch
+
+Name SwitchType NetAdapterInterfaceDescription
+---- ---------- ------------------------------
+nat  Internal
+</code></pre>
+<p>The <code>Internal</code> type indicates that this switch isn&#39;t directly connected to a network adapter on the host. Get some metadata about your host&#39;s NAT service:</p>
+<pre><code class="lang-powershell">PS node-1&gt; Get-NetNat
+
+Name                             : H3acfc61d-0d8e-438c-8857-9c2b742707bf
+ExternalIPInterfaceAddressPrefix :
+InternalIPInterfaceAddressPrefix : 172.20.128.1/20
+IcmpQueryTimeout                 : 30
+TcpEstablishedConnectionTimeout  : 1800
+TcpTransientConnectionTimeout    : 120
+TcpFilteringBehavior             : AddressDependentFiltering
+UdpFilteringBehavior             : AddressDependentFiltering
+UdpIdleSessionTimeout            : 120
+UdpInboundRefresh                : False
+Store                            : Local
+Active                           : True
+</code></pre>
+<p>Notice this IP listed here matches the gateway presented by <code>docker network inspect nat</code>.</p>
+</li>
+<li><p>Next, have a look at what network adapters are present in the host&#39;s network namespace:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; ipconfig /all
+
+Windows IP Configuration
+
+   Host Name . . . . . . . . . . . . : node-0
+   Primary Dns Suffix  . . . . . . . :
+   Node Type . . . . . . . . . . . . : Hybrid
+   IP Routing Enabled. . . . . . . . : No
+   WINS Proxy Enabled. . . . . . . . : No
+   DNS Suffix Search List. . . . . . : us-east-1.ec2-utilities.amazonaws.com
+                                       ec2.internal
+
+Ethernet adapter vEthernet (HNS Internal NIC):
+
+   Connection-specific DNS Suffix  . :
+   Description . . . . . . . . . . . : Hyper-V Virtual Ethernet Adapter
+   Physical Address. . . . . . . . . : 00-15-5D-E6-0A-79
+   DHCP Enabled. . . . . . . . . . . : Yes
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::1074:1c58:105c:eca4%8(Preferred)
+   IPv4 Address. . . . . . . . . . . : 172.20.128.1(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.240.0
+   Default Gateway . . . . . . . . . :
+   DHCPv6 IAID . . . . . . . . . . . : 184554845
+   DHCPv6 Client DUID. . . . . . . . : 00-01-00-01-22-DF-49-F3-0E-85-CC-1B-93-E6
+   DNS Servers . . . . . . . . . . . : fec0:0:0:ffff::1%1
+                                       fec0:0:0:ffff::2%1
+                                       fec0:0:0:ffff::3%1
+   NetBIOS over Tcpip. . . . . . . . : Enabled
+...
+</code></pre>
+<p>The Host Network Service (HNS) set up the virtual NIC (second block above) corresponding to your virtual switch and NAT when the Docker engine first started on this host.</p>
+</li>
+<li><p>Create a container attached to your nat network:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; docker container run --name=c1 -dt microsoft/nanoserver
+</code></pre>
+</li>
+<li><p>Have a look at the network adapters created inside this container&#39;s network namespace:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; docker container exec c1 ipconfig /all
+
+Windows IP Configuration
+
+   Host Name . . . . . . . . . . . . : 42651ff618f8
+   Primary Dns Suffix  . . . . . . . :
+   Node Type . . . . . . . . . . . . : Hybrid
+   IP Routing Enabled. . . . . . . . : No
+   WINS Proxy Enabled. . . . . . . . : No
+   DNS Suffix Search List. . . . . . : ec2.internal
+
+Ethernet adapter vEthernet (Container NIC c6951378):
+
+   Connection-specific DNS Suffix  . : ec2.internal
+   Description . . . . . . . . . . . : Hyper-V Virtual Ethernet Adapter #2
+   Physical Address. . . . . . . . . : 00-15-5D-E6-06-12
+   DHCP Enabled. . . . . . . . . . . : No
+   Autoconfiguration Enabled . . . . : Yes
+   Link-local IPv6 Address . . . . . : fe80::50cc:78ae:aa3b:51fd%18(Preferred)
+   IPv4 Address. . . . . . . . . . . : 172.20.136.208(Preferred)
+   Subnet Mask . . . . . . . . . . . : 255.255.240.0
+   Default Gateway . . . . . . . . . : 172.20.128.1
+   DNS Servers . . . . . . . . . . . : 172.20.128.1
+                                       10.10.0.2
+   NetBIOS over Tcpip. . . . . . . . : Disabled
+</code></pre>
+<p>The Host Network Service creates and places a virtual NIC inside the container&#39;s network namespace upon container creation, assigning that container an IP address from the <code>nat</code> network&#39;s subnet.</p>
+</li>
+<li><p>Create another container, and ping one from the other by container name:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; docker container run --name=c2 -dt microsoft/nanoserver
+PS: node-1 Administrator&gt; docker container exec c1 ping c2
+
+Pinging c2 [172.20.134.196] with 32 bytes of data:
+Reply from 172.20.134.196: bytes=32 time&lt;1ms TTL=128
+Reply from 172.20.134.196: bytes=32 time&lt;1ms TTL=128
+Reply from 172.20.134.196: bytes=32 time&lt;1ms TTL=128
+Reply from 172.20.134.196: bytes=32 time&lt;1ms TTL=128
+
+Ping statistics for 172.20.134.196:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+Approximate round trip times in milli-seconds:
+    Minimum = 0ms, Maximum = 0ms, Average = 0ms
+</code></pre>
+<p>The ping is successful; Docker uses DNS resolution so that our application logic (<code>ping c2</code> in this case) doesn&#39;t need to do any explicit service discovery or networking lookups by hand; all that is provided by the Docker engine and Windows networking stack.</p>
+</li>
+<li><p>Create one final container, but don&#39;t name it this time, and attempt to ping it from <code>c1</code> like above:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; docker container run -dt microsoft/nanoserver
+PS: node-1 Administrator&gt; docker container exec c1 ping &lt;new container name&gt;
+
+Ping request could not find host &lt;new container name&gt;. Please check the name and try again.
+</code></pre>
+<p>Docker only provides DNS lookup for containers explicitly named with the <code>--name</code> flag.</p>
+</li>
+</ol>
+<h2 id="forwarding-a-host-port-to-a-container">Forwarding a Host Port to a Container</h2>
+<ol>
+<li><p>Start an <code>iis</code> container with a port exposure:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; docker container run -d -p 5000:80 --name iis microsoft/iis
+</code></pre>
+<p>This syntax asks docker to forward all traffic arriving on port 5000 of the host&#39;s network namespace to port 80 of the container&#39;s network namespace. Visit the <code>iis</code> landing page at <code>&lt;node-1 public IP&gt;:5000</code>.</p>
+</li>
+<li><p>List the NAT rules on your host:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; Get-NetNatStaticMapping
+
+StaticMappingID               : 0
+NatName                       : H3acfc61d-0d8e-438c-8857-9c2b742707bf
+Protocol                      : TCP
+RemoteExternalIPAddressPrefix : 0.0.0.0/0
+ExternalIPAddress             : 0.0.0.0
+ExternalPort                  : 5000
+InternalIPAddress             : 172.20.142.213
+InternalPort                  : 80
+InternalRoutingDomainId       : {00000000-0000-0000-0000-000000000000}
+Active                        : True
+</code></pre>
+<p>There should be one similar to the above, with <code>ExternalPort: 5000</code>, <code>InternalPort: 80</code> and <code>InternalIPAddress</code> matching the IP of your iis container (try <code>docker container inspect &lt;iis container ID&gt;</code> or <code>docker network inspect nat</code> to see that this IP corresponds to your iis container).</p>
+</li>
+<li><p>Delete all you containers on this node to clean up:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; docker container rm -f $(docker container ls -aq)
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this demo, we stepped through the basic behavior of docker software defined nat networks, and looked at the technology underpinning them such as virtual switches and virtual NICs. By default, all containers started on a host without any explicit networking configuration will be able to communicate across Docker&#39;s <code>nat</code> network, and in order for containers to resolve each other&#39;s name by DNS, they must also be explicitly named upon creation.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

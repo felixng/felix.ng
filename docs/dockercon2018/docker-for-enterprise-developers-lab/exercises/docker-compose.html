@@ -1,0 +1,250 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="docker-compose">Docker Compose</h1>
+<p>When developing different parts of an application, you&#39;ll often want different Docker Compose files that describe different configurations or priorities for developing each part of the project. In this exercise, we&#39;ll customize our Docker Compose file twice: once for backend development, and once for frontend development.</p>
+<p>The project folder for this exercise is <code>~/ddev-labs/docker-compose</code>.</p>
+<h2 id="back-end-development">Back-end Development</h2>
+<p>When working on data and API tiers of an application, we:</p>
+<ul>
+<li>don&#39;t care about the frontend, and leave it off. We can use things like curl or Postman to hit API endpoints without a fully-featured frontend.</li>
+<li>still want edit and continue cycles like always.</li>
+</ul>
+<p>Auto-reloading a Spring Boot based Java API is a bit more involved than the Node JS API we set up in a previous exercise. Here we&#39;re going to implement one possible solution using the Spring Boot devtools, detailed here: <a href="https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-devtools.html">https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-devtools.html</a>.</p>
+<ol>
+<li><p>Change the <code>api/pom.xml</code> file and add this block to the <code>&lt;plugins&gt;</code> node:</p>
+<pre><code class="lang-xml">&lt;plugin&gt;
+    &lt;groupId&gt;com.fizzed&lt;/groupId&gt;
+    &lt;artifactId&gt;fizzed-watcher-maven-plugin&lt;/artifactId&gt;
+    &lt;version&gt;1.0.6&lt;/version&gt;
+    &lt;configuration&gt;
+        &lt;touchFile&gt;target/classes/watcher.txt&lt;/touchFile&gt;
+        &lt;watches&gt;
+            &lt;watch&gt;
+                &lt;directory&gt;src/main/java/com/docker/ddev&lt;/directory&gt;
+            &lt;/watch&gt;
+        &lt;/watches&gt;
+        &lt;goals&gt;
+            &lt;goal&gt;package&lt;/goal&gt;
+        &lt;/goals&gt;
+    &lt;/configuration&gt;
+&lt;/plugin&gt;
+</code></pre>
+<p>Here is how the file should look when complete: <a href="https://bit.ly/2T1TXf0">https://bit.ly/2T1TXf0</a></p>
+<p>This will use the <code>fizzed-watcher</code> Maven plugin to watch for changes in any file in the folder <code>src/main/java/com/docker/ddev</code> folder and in this case run the goal <code>package</code>.</p>
+<p>For more info please refer to the following URL: <a href="https://github.com/fizzed/maven-plugins">https://github.com/fizzed/maven-plugins</a>.</p>
+</li>
+<li><p>Create a file <code>api/Dockerfile.api</code> with this content:</p>
+<pre><code class="lang-dockerfile">FROM maven:3.5.0-jdk-8-alpine AS appserver
+WORKDIR /usr/src/ddev
+COPY pom.xml .
+RUN mvn -B -f pom.xml -s /usr/share/maven/ref/settings-docker.xml dependency:resolve
+COPY . .
+RUN mvn -B -s /usr/share/maven/ref/settings-docker.xml package -DskipTests
+EXPOSE 8080
+CMD mvn spring-boot:run
+</code></pre>
+<p>Note how we&#39;re using the <code>spring-boot:run</code> goal to run the API in auto-reload mode. Any changes in <code>target/classes</code> will trigger a reload of the API.</p>
+</li>
+<li><p>Open the <code>docker-compose-api.yml</code> file, and replace the <code>api</code> service with:</p>
+<pre><code class="lang-yaml">apiserver:
+  build:
+    context: api
+    dockerfile: Dockerfile.api
+  image: ddev_api
+  volumes:
+    - ./api:/usr/src/ddev
+  ports:
+    - &quot;8080:8080&quot;
+    - &quot;5005:5005&quot;
+  networks:
+    - back-tier
+  secrets:
+    - postgres_password
+</code></pre>
+<p>Here we&#39;re mounting our source code for edit-and-continue, and we aren&#39;t bothering with the <code>front-tier</code> network since we won&#39;t be running a UI container while working on the backend. Remove <code>front-tier</code> from the list of networks at the bottom of the compose file, too. Ports are exposed on the API service so we can hit them directly with curl.</p>
+</li>
+<li><p>In the same compose file, add another service that recompiles the project whenever a <code>*.java</code> file changes:</p>
+<pre><code class="lang-yaml">watcher:
+  build: 
+    context: api
+    dockerfile: Dockerfile.api
+  volumes:
+    - ./api:/usr/src/ddev
+  command: mvn fizzed-watcher:run
+  networks:
+    - back-tier
+</code></pre>
+<p>The complete <code>docker-compose-api.yml</code> file should now look like this gist: <a href="http://bit.ly/2h48tnt">http://bit.ly/2h48tnt</a></p>
+</li>
+<li><p>Change the <code>api/src/main/resources/application.yml</code> file and change the <code>default</code> profile to use the same settings as the <code>postgres</code> profile:</p>
+<p>First remove the <code>default</code> profile in the first part of the file as shown here:</p>
+<pre><code class="lang-yaml">...
+spring:
+    profiles: local, default
+...
+</code></pre>
+<p>Then add it further down after <code>postgres</code> as shown here:</p>
+<pre><code class="lang-yaml">...
+spring:
+    profiles: postgres, default
+...
+</code></pre>
+<p>After the changes, the <code>application.yml</code> should look like this: <a href="https://bit.ly/2N3xbPD">https://bit.ly/2N3xbPD</a>.</p>
+</li>
+<li><p>Run the application:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/docker-compose$ docker-compose \
+    -f docker-compose-api.yml up --build
+</code></pre>
+</li>
+<li><p>Wait until you see something like <code>Started DdevApp in 10.242 seconds</code>, then in another terminal test the API using <code>curl</code>:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/docker-compose$ curl localhost:8080/api/pet
+</code></pre>
+<p>you should be served a URL for a cat image.</p>
+</li>
+<li><p>Change some of the API&#39;s java source; for example,  in <code>api/src/main/java/com/docker/ddev/controller/PetController.java</code>, try setting <code>int max = 1</code> instead of 13; in the window you started the compose app from, you should be able to see the watcher container successfully rebuild the API. Once it&#39;s done, hit <code>localhost:8080/api/pet</code> a couple of times and make sure you get the same image url.</p>
+</li>
+<li><p>When done terminate the application with <code>CTRL+C</code> and remove it:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/docker-compose$ docker-compose -f docker-compose-api.yml down
+</code></pre>
+<p>Then reset the <code>int max</code> to <code>13</code> in <code>api/src/main/java/com/docker/ddev/controller/PetController.java</code>.</p>
+</li>
+</ol>
+<h2 id="front-end-development">Front-end Development</h2>
+<p>In the case of front-end development, we want:</p>
+<ul>
+<li>A fixed backend; since your backend and frontend code is loosely coupled, there is no need to rebuild the database and API every time. Instead we will use fixed images for both.</li>
+<li>edit and continue cycles for our frontend code</li>
+</ul>
+<ol>
+<li><p>From the <code>ddev-labs/docker-compose</code> directory, build the images for the API and the database:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/docker-compose$ docker image build -t pets-api:1.0 api
+ubuntu@infra:~/ddev-labs/docker-compose$ docker image build -t pets-db:1.0 database
+</code></pre>
+</li>
+<li><p>Since we need <code>nodemon</code> we create a special Dockerfile for our UI only used during development. Add a file <code>Dockerfile-dev</code> to the <code>ui</code> folder with this content:</p>
+<pre><code class="lang-dockerfile">FROM node:8-alpine
+
+# This is only needed during development
+# to auto-reload the app on src change
+RUN npm install -g nodemon 
+
+RUN mkdir /app
+WORKDIR /app
+COPY package.json /app/
+RUN npm install
+COPY ./src /app/src
+EXPOSE 3000
+CMD nodemon src/server.js -e html,js 0.0.0.0 3000
+</code></pre>
+<p>The only difference between the <code>Dockerfile</code> and the <code>Dockerfile-dev</code> is the installation instruction for <code>nodemon</code> which is used to auto-reload the app in case of code changes and the <code>CMD</code> which starts <code>nodemon</code> instead of <code>node</code>. <strong>If you&#39;re trying this on a Windows machine</strong>, add the <code>-L</code> flag after <code>nodemon</code> to poll for changes in legacy mode to see the desired behavior.</p>
+</li>
+<li><p>Add a file <code>docker-compose/docker-compose-ui.yml</code> with this content:</p>
+<pre><code class="lang-yaml">version: &quot;3.1&quot;
+
+services:
+  database:
+    image: pets-db:1.0
+    environment:
+      POSTGRES_USER: gordonuser
+      POSTGRES_DB: ddev
+    ports:
+      - &quot;5432:5432&quot; 
+    networks:
+      - back-tier
+    secrets:
+      - postgres_password
+
+  api:
+    image: pets-api:1.0
+    ports:
+      - &quot;8080:8080&quot;
+    networks:
+      - front-tier
+      - back-tier
+    secrets:
+      - postgres_password
+
+  ui:
+    build:
+      context: ui
+      dockerfile: Dockerfile-dev
+    image: ddev_ui
+    volumes:
+      - ./ui/src:/app/src
+      - ./ui/package.json:/app/package.json
+    ports:
+      - &quot;3000:3000&quot;
+    networks:
+      - front-tier
+
+secrets:
+  postgres_password:
+    file: ./devsecrets/postgres_password
+
+networks:
+  front-tier:
+  back-tier:
+</code></pre>
+<p>Gist: <a href="https://bit.ly/2J81JyT">https://bit.ly/2J81JyT</a></p>
+<p>Note that we use a pre-built image of the backend and we achieve edit-and-continue experience through:</p>
+<ul>
+<li>Volume mapping of our source code directory into the container via <code>docker-compose</code></li>
+<li>Choosing a <code>CMD</code> in our UI&#39;s <code>Dockerfile</code> so that we run <code>nodemon</code> which auto-reloads the UI in case of file changes</li>
+</ul>
+</li>
+<li><p>Run the application:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/docker-compose$ docker-compose \
+    -f docker-compose-ui.yml up --build
+</code></pre>
+</li>
+<li><p>Test the application by opening a browser window and navigating to <code>&lt;infra public IP&gt;:3000/pet</code>. You should see a cat image. Refresh a few times and make sure you get served different images.</p>
+</li>
+<li><p>Change some UI code, e.g. change the background color in <code>ui/src/index.html</code> to <code>darkblue</code> and make sure the application auto-reloads (visible in the console) and when refreshing the browser you get the new color displayed.</p>
+</li>
+<li><p>When done stop the application with <code>CTRL+C</code> and remove it:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/docker-compose$ docker-compose -f docker-compose-ui.yml down
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>Application configuration is often best captured in a docker-compose file; as such, we will often write different compose files for different environments or even different parts of the development cycle. As we saw above, some common case-specific modifications are:</p>
+<ul>
+<li>automatic re-compile tools during development (similarly, automatic re-test tools during testing)</li>
+<li>port exposures for hitting APIs under development (would never do this in production)</li>
+<li>volume mounts for edit-and-continue experience</li>
+<li>fixing other loosely coupled components while we iterate on the code of interest</li>
+</ul>
+<p>We also saw some cases where we used specialized Dockerfiles that added extra tooling for the development process. One common pattern here is to use a multi-stage build, where the first stage is a fully featured dev environment and the second is a minimal production environment. Another is to go the other way: build a minimal production environment image, and use that as the base image when constructing a development image with more tooling. Which is preferable depends on whether tooling (usually compilers or SDKs) is needed inside the image to build the production binaries; if so, we&#39;ll usually go the multi-stage build route, so we can build our binaries and then cherry-pick them in the final production image. If we&#39;re building containers for purely interpreted code, it can be easier to create a minimal production image right away, and then base development images with extra tooling on top of these.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

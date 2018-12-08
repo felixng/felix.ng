@@ -1,0 +1,79 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="node-failure-recovery">Node Failure Recovery</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Anticipate swarm scheduling decisions when nodes fail and recover</li>
+<li>Force swarm to reallocate workload across a swarm</li>
+</ul>
+<h2 id="setting-up-a-service">Setting up a Service</h2>
+<ol>
+<li><p>Set up an <code>microsoft/iis</code> service with four replicas on <code>node-0</code>, and wait for all four tasks to be up and running:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker service create --replicas 4 --name iis `
+    microsoft/iis
+</code></pre>
+</li>
+</ol>
+<h2 id="simulating-node-failure">Simulating Node Failure</h2>
+<ol>
+<li><p>Login to the non-manager node in your swarm (<code>node-3</code>), and simulate a node failure by rebooting it:</p>
+<pre><code class="lang-powershell">PS: node-3 Administrator&gt; Restart-Computer -Force
+</code></pre>
+</li>
+<li><p>Back on <code>node-0</code>, keep doing <code>docker service ps iis</code> every few seconds; what happens to the task running on the rebooted node? Look at its desired state, any other tasks that get scheduled with the same name, and keep watching until <code>node-3</code> comes back online.</p>
+</li>
+</ol>
+<h2 id="force-rebalancing">Force Rebalancing</h2>
+<p>By default, if a node fails and rejoins a swarm it <em>will not</em> get its old workload back; if we want to redistribute workload across a swarm after new nodes join (or old nodes rejoin), we need to force-rebalance our tasks.</p>
+<ol>
+<li><p>Make sure <code>node-3</code> has fully rebooted and rejoined the swarm.</p>
+</li>
+<li><p>Force rebalance the tasks:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker service update --force iis
+</code></pre>
+</li>
+<li><p>Just like when you changed the configuration of your service to add an environment variable to its containers in the previous exercise, you&#39;ll see each task get shut down and rescheduled, until the final scheduling state of the service has spread tasks out across the swarm as if it was a freshly scheduled service.</p>
+</li>
+</ol>
+<h2 id="cleanup">Cleanup</h2>
+<ol>
+<li><p>Remove all existing services, in preparation for future exercises:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker service rm $(docker service ls -q)
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, you saw swarm&#39;s scheduler in action - when a node is lost from the swarm, tasks are automatically rescheduled to restore the state of our services. Note that nodes joining or rejoining the swarm do not get workload automatically reallocated from existing nodes to them; rescheduling only happens when tasks crash, services are first scheduled, or you force a reschedule as above.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

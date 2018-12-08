@@ -1,0 +1,133 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="introduction-to-container-networking">Introduction to Container Networking</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Attach containers to Docker&#39;s default nat network</li>
+<li>Resolve containers by DNS entry</li>
+</ul>
+<h2 id="inspecting-the-default-nat-network">Inspecting the Default Nat Network</h2>
+<ol>
+<li><p>First, let&#39;s investigate the NAT network that Docker provides by default. Start by getting some information:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; Get-NetNat
+</code></pre>
+<p>which should give something similar to this:</p>
+<pre><code class="lang-powershell">Name                             : H3acfc61d-0d8e-438c-8857-9c2b742707bf
+ExternalIPInterfaceAddressPrefix :
+InternalIPInterfaceAddressPrefix : 172.20.128.1/20
+IcmpQueryTimeout                 : 30
+TcpEstablishedConnectionTimeout  : 1800
+TcpTransientConnectionTimeout    : 120
+TcpFilteringBehavior             : AddressDependentFiltering
+UdpFilteringBehavior             : AddressDependentFiltering
+UdpIdleSessionTimeout            : 120
+UdpInboundRefresh                : False
+Store                            : Local
+Active                           : True
+</code></pre>
+<p>Note the <code>InternalIPInterfaceAddressPrefix</code> value which provides information about the subnet managed by this network. Here it is <code>172.20.128.1/20</code>.</p>
+</li>
+<li><p>Now let&#39;s use the Docker CLI to inspect the network. The <code>docker network inspect</code> command yields network information about what containers are connected to the specified network; the default network is always called <code>nat</code>, so run:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; docker network inspect nat
+</code></pre>
+<p>This results in:</p>
+<pre><code class="lang-json">[
+    {
+        &quot;Name&quot;: &quot;nat&quot;,
+        &quot;Id&quot;: &quot;28164bac70060efe504440aed3845180ad2262349852a920accd697bba33b967&quot;,
+        &quot;Created&quot;: &quot;2017-08-15T12:36:40.8065675Z&quot;,
+        &quot;Scope&quot;: &quot;local&quot;,
+        &quot;Driver&quot;: &quot;nat&quot;,
+        &quot;EnableIPv6&quot;: false,
+        &quot;IPAM&quot;: {
+            &quot;Driver&quot;: &quot;windows&quot;,
+            &quot;Options&quot;: null,
+            &quot;Config&quot;: [
+                {
+                    &quot;Subnet&quot;: &quot;172.20.128.0/20&quot;,
+                    &quot;Gateway&quot;: &quot;172.20.128.1&quot;
+                }
+            ]
+        },
+        ...
+</code></pre>
+<p>In the <code>IPAM</code> section we basically see some of the same information as above, namely the subnet and the gateway of the subnet.</p>
+</li>
+</ol>
+<h2 id="connecting-containers-to-default-nat">Connecting Containers to Default Nat</h2>
+<ol>
+<li><p>Start some named containers:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; docker container run --name=u1 -dt microsoft/nanoserver
+PS: node-1 Administrator&gt; docker container run --name=u2 -dt microsoft/nanoserver
+</code></pre>
+</li>
+<li><p>Inspect the <code>nat</code> network again:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; docker network inspect nat
+</code></pre>
+<p>You should see two new entries in the <code>Containers</code> section of the result, one for each container:</p>
+<pre><code class="lang-json">...
+&quot;Containers&quot;: {
+    &quot;45e8576b05077e69e3786e85106b392d2d3a20743e10740c1d298cfb258b6922&quot;: {
+        &quot;Name&quot;: &quot;u1&quot;,
+        &quot;EndpointID&quot;: &quot;8e938af24a907dc8c6aaad9dca1fb040fdab76c929dec4418ea60aeb1443522e&quot;,
+        &quot;MacAddress&quot;: &quot;00:15:5d:e6:0a:ec&quot;,
+        &quot;IPv4Address&quot;: &quot;172.20.131.137/16&quot;,
+        &quot;IPv6Address&quot;: &quot;&quot;
+    },
+    &quot;b7e49f5566332d6e4e21b56dacb6ae6e051fb198b30ae05bf1bd1884023d3e20&quot;: {
+        &quot;Name&quot;: &quot;u2&quot;,
+        &quot;EndpointID&quot;: &quot;266f0c03b56dfceafeafd890828506b0cfcd503e0eb13d32c2458479015fd0c5&quot;,
+        &quot;MacAddress&quot;: &quot;00:15:5d:e6:07:06&quot;,
+        &quot;IPv4Address&quot;: &quot;172.20.135.21/16&quot;,
+        &quot;IPv6Address&quot;: &quot;&quot;
+    },
+    ...
+}
+...
+</code></pre>
+<p>We can see that each container gets a <code>MacAddress</code> and an <code>IPv4Address</code> associated. The <code>nat</code> network is providing level 2 routing and transfers network packets between MAC addresses.</p>
+</li>
+<li><p>Connect to container <code>u2</code> of your containers using <code>docker container exec -it u2 powershell</code>. </p>
+</li>
+<li><p>From inside <code>u2</code>, try pinging container <code>u1</code> by the IP address you found in the previous step; then try pinging <code>u1</code> by container name, <code>ping u1</code>. Notice the lookup works with both the IP and the container name.</p>
+</li>
+<li><p>Clean up these containers:</p>
+<pre><code class="lang-powershell">PS: node-1 Administrator&gt; docker container rm -f u1 u2
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, you explored the most basic example of container networking: two containers communicating on the same host via network address translation and a layer 2 in-software router in the form a a Hyper-V switch. In addition to this basic routing technology, you saw how Docker leverages DNS lookup via container name to make our container networking portable; by allowing us to reach another container purely by name, without doing any other service discovery, we make it simple to design application logic meant to communicate container-to-container. At no point did our application logic need to discover anything directly about the networking infrastructure it was running on.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

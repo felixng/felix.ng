@@ -1,0 +1,140 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="creating-a-swarm">Creating a Swarm</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Create a swarm in high availability mode</li>
+<li>Set default address pools</li>
+<li>Check necessary connectivity between swarm nodes</li>
+<li>Configure the swarm&#39;s TLS certificate rotation</li>
+</ul>
+<h2 id="starting-swarm-mode">Starting Swarm Mode</h2>
+<ol>
+<li><p>On <code>node-0</code>, initialize swarm and create a cluster with a default address pool for a discontiguous address range of 10.85.0.0/16 and 10.91.0.0/16 with a default subnet size of 128 addresses. This will be your first manager node:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; $PRIVATEIP = &#39;&lt;node-0 private IP&gt;&#39;
+PS: node-0 Administrator&gt; docker swarm init `
+    --advertise-addr ${PRIVATEIP} `
+    --listen-addr ${PRIVATEIP}:2377 `
+    --default-addr-pool 10.85.0.0/16 `
+    --default-addr-pool 10.91.0.0/16 `
+    --default-addr-pool-mask-length 25
+
+Swarm initialized: current node (xyz) is now a manager.
+
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-0s96... 10.10.1.40:2377
+
+To add a manager to this swarm, run &#39;docker swarm join-token manager&#39; and follow the instructions.
+</code></pre>
+</li>
+<li><p>Confirm that Swarm Mode is active and that the default address pool configuration has been registered by inspecting the output of:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker system info
+
+...
+Swarm: active
+...
+    Default Address Pool: 10.85.0.0/16  10.91.0.0/16
+    SubnetSize: 25
+...
+</code></pre>
+</li>
+<li><p>See all nodes currently in your swarm by doing:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker node ls
+
+ID      HOSTNAME   STATUS   AVAILABILITY   MANAGER STATUS
+xyz *   node-0     Ready    Active         Leader
+</code></pre>
+<p>A single node is reported in the cluster.</p>
+</li>
+<li><p>Change the certificate rotation period from the default of 90 days to one week, and rotate the certificate now:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker swarm ca --rotate --cert-expiry 168h
+</code></pre>
+<p>Note that the <code>docker swarm ca [options]</code> command <em>must</em> receive the <code>--rotate</code> flag, or all other flags will be ignored.</p>
+</li>
+</ol>
+<h2 id="adding-workers-to-the-swarm">Adding Workers to the Swarm</h2>
+<p>A single node swarm is not a particularly interesting swarm; let&#39;s add some workers to really see swarm mode in action.</p>
+<ol>
+<li><p>On your manager node, get the swarm join token you&#39;ll use to add worker nodes to your swarm:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker swarm join-token worker
+</code></pre>
+</li>
+<li><p>Remote login into <code>node-1</code>, and paste the result of the last step there. This new node will join the swarm as a worker.</p>
+</li>
+<li><p>Do <code>docker node ls</code> on <code>node-0</code> again, and you should see both your nodes and their status; note that <code>docker node ls</code> won&#39;t work on a worker node, as the cluster status is maintained only by the manager nodes.</p>
+</li>
+<li><p>Have a look at open TCP connections on <code>node-0</code>:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; netstat
+
+Active Connections
+
+  Proto  Local Address          Foreign Address        State
+  TCP    10.10.5.199:2377       ip-10-10-21-25:52054   ESTABLISHED
+  TCP    10.10.5.199:3389       WimaxUser37230-226:63128  CLOSE_WAIT
+  TCP    10.10.5.199:3389       ool-944be43f:51428     ESTABLISHED
+  TCP    10.10.5.199:7946       ip-10-10-21-25:52010   TIME_WAIT
+  TCP    10.10.5.199:7946       ip-10-10-21-25:52057   TIME_WAIT
+  TCP    10.10.5.199:51233      13.89.217.116:https    ESTABLISHED
+  TCP    10.10.5.199:51862      52.94.233.129:https    TIME_WAIT
+  TCP    10.10.5.199:51865      ip-10-10-21-25:7946    TIME_WAIT
+  TCP    10.10.5.199:51866      ip-10-10-21-25:7946    TIME_WAIT
+</code></pre>
+<p>You should see something similar; most notably, the first line in the example above corresponds to <code>node-1</code> (private IP 10.10.21.25 in this example) connecting to this node on tcp/2377. Also, many mutual connections are made between the two nodes on 7946, corresponding to gossip control plane communications.</p>
+</li>
+<li><p>Finally, use the same join token to add two more workers to your swarm. When you&#39;re done, confirm that <code>docker node ls</code> on your one manager node reports 4 nodes in the cluster - one manager, and three workers:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker node ls
+
+ID      HOSTNAME   STATUS   AVAILABILITY   MANAGER STATUS
+ghi     node-3     Ready    Active              
+def     node-2     Ready    Active              
+abc     node-1     Ready    Active              
+xyz *   node-0     Ready    Active         Leader
+</code></pre>
+</li>
+</ol>
+<h2 id="promoting-workers-to-managers">Promoting Workers to Managers</h2>
+<p>At this point, our swarm has a single manager. If this node goes down, the whole swarm is lost. In a real deployment, this is unacceptable; we need some redundancy to our system, and swarm mode achieves this by using a raft consensus of multiple managers to preserve swarm state. </p>
+<ol>
+<li><p>Promote two of your workers to manager status by executing, on <code>node-0</code>:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker node promote node-1 node-2
+</code></pre>
+</li>
+<li><p>Finally, do a <code>docker node ls</code> to check and see that you now have three managers; <code>node-1</code> and <code>node-2</code> should report as <code>Reachable</code>, indicating that they are healthy members of the raft consensus. Note that manager nodes also count as worker nodes - tasks can still be scheduled on them as normal by default.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, you set up a basic high-availability swarm. In practice, it is crucial to have at least 3 (and always an odd number) of managers in order to ensure high availability of your cluster, and to ensure that the management, control, and data plane communications a swarm maintains can proceed unimpeded between all nodes.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

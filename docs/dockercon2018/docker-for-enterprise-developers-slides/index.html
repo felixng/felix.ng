@@ -1,0 +1,3499 @@
+<!doctype html>
+<html lang="en">
+
+    <head>
+        <meta charset="utf-8">
+
+        <title>Docker Present</title>
+
+        <meta name="description" content="Docker Present">
+        <meta name="author" content="Jerry Baker">
+
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+        <!-- css -->
+        <link rel="stylesheet" href="css/reveal.css">
+        <link rel="stylesheet" href="src/css/docker.css" id="theme">
+        <link rel="stylesheet" href="src/css/sd_custom.css">
+        <link rel="stylesheet" href="src/css/docker-code.css">
+
+        <!-- Printing and PDF exports -->
+        <script>
+            var link = document.createElement( 'link' );
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+            document.getElementsByTagName( 'head' )[0].appendChild( link );
+        </script>
+
+        <!--[if lt IE 9]>
+        <script src="lib/js/html5shiv.js"></script>
+        <![endif]-->
+    </head>
+
+    <body>
+        <p style="font-size:12px !important; z-index:10; color:#FFFFFF; position: fixed; bottom: 30px; left: calc(50% - 5em);">ee2.1-dceu-v1.2 © 2018 Docker, Inc.</p>
+		<img src="images/docker_logo_flat.png" style="width: 50px; height: auto; position: fixed; bottom: 30px; left: 30px; z-index: 9999;" alt="docker logo">
+        <div class="reveal">
+            <div class="slides">
+                <section data-background="#1AAAF8" class="blue_bg">
+    <section data-background="src/modules/ddev/welcome/images/title_slide_lesson_2.jpg" class="blue_bg">
+        <h2>Docker for Enterprise Developers</h2>
+    </section>
+
+    <section data-background="#1AAAF8" class="blue_bg">
+        <h2>How We Teach</h2>
+        <ul>
+            <li>Docker believes in learning by doing, with support.</li>
+            <li>The course is lab driven with lecture.</li>
+            <li>Work together</li>
+            <li>Ask questions at any time</li>
+        </ul>       
+
+        <aside class="notes">
+            <ul>
+                <li>80% of workshop time should be devoted to exercises and discussion; please work together and ask questions immediately as they arise.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#1AAAF8" class="blue_bg">
+        <h2>Session Logistics</h2>
+        <ul>
+            <li>2 days duration</li>
+            <li>
+                mostly exercises
+                <ul>
+                    <li>Take time to read the code examples closely</li>
+                </ul>
+            </li>
+            <li>regular breaks</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>The exercises in this workshop are based on a simple demo application. While you may be able to quickly step through many of the exercsies, don't just see the desired behavior and quit; take time to examine the code and configuration files closely, and make sure you understand exactly how things are put together.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#1AAAF8" class="blue_bg">
+        <h2>Assumed Knowledge and Requirements</h2>
+        <ul>
+            <li>Familiarity with using the Linux command line</li>
+            <li>A UCP License (download one at <a href='https://store.docker.com/bundles/docker-datacenter/purchase?plan=free-trial'>https://store.docker.com/bundles/docker-datacenter/purchase?plan=free-trial</a>)</li>
+            <li style="padding-top: 10px;">You should know the basics of Docker
+                <ul>
+                    <li>Run a Docker container</li>
+                    <li>Search for and pull images from Docker Store</li>
+                    <li>Use Docker for Mac / Windows on your local machine</li>
+                </ul>
+            </li>
+        </ul>
+    </section>
+
+    <section data-background="#1AAAF8" class="blue_bg">
+        <h2>Your lab environment</h2>
+        <ul>
+            <li>You have been given several instances for use in exercises.</li>
+            <li>Ask instructor for access credentials if you don't have them already.</li>
+        </ul>
+    </section>
+
+    <section data-background="#1AAAF8" class="blue_bg">
+        <h2>Course Learning Objectives</h2>
+
+        <p>By the end of this course, learners will be able to:</p>
+        <ul>
+            <li>Describe the essential patterns used in a highly distributed EE application</li>
+            <li>Understand how to configure EE applications for different environments without code change</li>
+            <li>Produce and containerize scalable, accessible, and fault-tolerant EE applications</li>
+            <li>Apply different debugging and testing techniques to containerized EE applications</li>
+        </ul>
+    </section>
+</section><section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/architecture/images/icon_lecture.png" class="slide_icon" alt="icon">Distributed Application Architecture</h2>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Describe how familiar design patterns relate to containerized applications</li>
+            <li>Enumerate key challenges in containerized application design</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Distributed Application Architecture</h2>
+
+        <p>Definition: An application consisting of one <span class='keyword'>or more</span> processes running on one <span class='keyword'>or more</span> nodes.</p>
+
+        <aside class='notes'>
+            <ul>
+                <li>Containerization is fundamentally designed to provide radical scalability and portability of processes; containerization's success on both these fronts has been so great, that it created a whole new paradigm of thinking about our applications and the infrastructure they run on.</li>
+                <li>Where previously we may have built monolithic applications that ran as a single process on one node (multiplied by however many instances we desired), ditributed application architecture imagines applications that consist of many interacting processes, which can be distributed arbitrarily and flexibly across many machines.</li>
+            </ul>
+        </aside>
+    </section>    
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Services over Processes</h2>
+
+        <img src='src/modules/ddev/architecture/images/service-not-process.png'></img>
+
+        <aside class='notes'>
+            <ul>
+                <li>Where previously we might have imagined building an app by having one specific process talk to another specific process, the radical scalability of a well made containerized application means we can abstract away the difference between individual processes, and have a whole collections of processes of one type talk to a whole collection of processes of another type.</li>
+                <li>The great advantage of this model is scalability and durability; adding or removing containers doesn't change this underlying communication model, so it's trivial to scale an application, or to recover from process failure.</li>
+                <li>As developers, this service-to-service architecture is how you should be thinking of designing containerized applications. If you find yourself worrying about whether you're connecting to this instance or that instance, you might want to take a step back and see if you can let Docker handle those underlying distinctions for you.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Clusters over Nodes</h2>
+
+        <img src='src/modules/ddev/architecture/images/swarms-not-nodes.png'></img>
+
+        <aside class='notes'>
+            <ul>
+                <li>In a similar fashion to how we want to abstract away the differences between individual instances of a program in favor of a service consisting of many replicas, the radical portability of containers lets us abstract away the differences between machines.</li>
+                <li>Rather than worrying about which machine I'm going to deploy which process on, we'd like to federate a whole bunch of computers into one transparent, homogenous computing resource, that we can treat as one scalable entity. Docker will worry about the details of moving traffic between machines, so it never needs to appear in our application logic. Not only is this just convenient, but it means that our work is portable at the application level (not just the container level) across deployments and datacenters.</li>
+                <li>Again, the advantage here is flexibility; the actual content of your cluster in terms of nodes and IPs is transparent to developers and operations teams, so nodes can be added (or nodes can fail) without ruining the underlying model.</li>
+            </ul>
+        </aside>
+    </section>    
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Characteristics &amp; Requirements</h2>
+
+        <ul>
+            <li>Bandwidth and latency</li>
+            <li>Ephemeral components</li>
+            <li>Stateless versus stateful</li>
+            <li>Service discovery</li>
+            <li>Load balancing</li>
+            <li>Health checking</li>
+            <li>Logging and monitoring</li>
+            <li>Circuit breakers</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>These added abstraction layers that encourage us to build scalable services running on scalable clusters of nodes (rather than individual processes running on individual machines) for the advantages of portability, stability and scalability discussed, but there are quite a few concerns that have been ignored so far.</li>
+                <li>In order for all this to actually work, we need to address all of the above concerns. What is this distribution going to do to our network traffic? How will I load balance across all these processes? Will my applications really be robust versus process or node failure?</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Bandwidth &amp; Latency</h2>
+
+        <div class='row'>
+            <div class='col-8'>
+                <table style='font-size:20px;'>
+                    <tr>
+                        <td>Action</td>
+                        <td>Real Time</td>
+                        <td>Scaled Time</td>
+                    </tr>
+                    <tr>
+                        <td>1 CPU Cycle</td>
+                        <td>0.3 ns</td>
+                        <td>1 s</td>
+                    </tr>
+                    <tr>
+                        <td>Level 1 cache access</td>
+                        <td>0.9 ns</td>
+                        <td>3 s</td>
+                    </tr>
+                    <tr>
+                        <td>Level 2 cache access</td>
+                        <td>2.8 ns</td>
+                        <td>9 s</td>
+                    </tr>
+                    <tr>
+                        <td>Level 3 cache access</td>
+                        <td>12.9 ns</td>
+                        <td>43 s</td>
+                    </tr>
+                    <tr>
+                        <td>Main memory access</td>
+                        <td>120 ns</td>
+                        <td>6 min</td>
+                    </tr>
+                    <tr>
+                        <td>Solid state disk I/O</td>
+                        <td>50-150 us</td>
+                        <td>2-6 days</td>
+                    </tr>
+                    <tr>
+                        <td>Rotational disk I/O</td>
+                        <td>1-10 ms</td>
+                        <td>1-12 months</td>
+                    </tr>
+                    <tr>
+                        <td>Internet: SF -> NYC</td>
+                        <td>40 ms</td>
+                        <td>4 years</td>
+                    </tr>
+                    <tr>
+                        <td>Internet: SF -> UK</td>
+                        <td>81 ms</td>
+                        <td>8 years</td>
+                    </tr>
+                    <tr>
+                        <td>Internet: SF -> Australia</td>
+                        <td>183 ms</td>
+                        <td>19 years</td>
+                    </tr>
+                    <tr>
+                        <td>OS Virtualization Reboot</td>
+                        <td>4 s</td>
+                        <td>423 years</td>
+                    </tr>
+                    <tr>
+                        <td>SCSI Command timeout</td>
+                        <td>30 s</td>
+                        <td>3000 years</td>
+                    </tr>
+                    <tr>
+                        <td>Hardware virtualization reboot</td>
+                        <td>40 s</td>
+                        <td>4000 years</td>
+                    </tr>
+                    <tr>
+                        <td>Physical system reboot</td>
+                        <td>5 min</td>
+                        <td>32 millenia</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class='col-4'>
+                <ul>
+                    <li>Enterprise apps consist of many components</li>
+                    <li>Remote calls are always expensive</li>
+                    <li>Keep distances short</li>
+                    <li>Co-locate where possible</li>
+                    <li>Use high bandwith connections</li>
+                </ul>
+            </div>
+        </div>
+
+        <aside class='notes'>
+            <ul>
+                <li>A typical Enterprise application consists of many components or services that need to work together. In a typical setup using Docker EE those services run distributed accross a cluster (or swarm) of nodes. Thus the communication between the services is requiring remote calls in the form of RPC or HTTP to just name two possibilities.</li>
+                <li>Remote calls are always expensive. It takes time to make a roundtrip across distributed nodes (physical servers or VMs). We call this latency.</li>
+                <li>In order for us to preserve our philosophy of scheduling containers on whatever node we like, we need high bandwidth connections between all the nodes in our swarm, or we need co-location of chatty services, or we're going to end up taking 32,000 years every time we need to reboot a machine.</li>
+                <li>From the devlopers perspective, keeping traffic to a minimum between containers helps mitigate this problem.</li>
+                <li>Latency table: https://blog.codinghorror.com/the-infinite-space-between-words/</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Ephemeral containers</h2>
+        <ul>
+            <li>Pets versus livestock</li>
+            <li>Short lifecycle</li>
+            <li>Don't rely on specific containers</li>
+            <li>Fast initialization / shutdown</li>
+        </ul>
+        <aside class="notes">
+            <ul>
+                <li>Containers are meant to come and go, as applications scale, fail, and recover. If we want all this to be automated and fast, we can't require a lot of hands-on configuration or maintenance for each one; rather than tending to a container like a pet, we use it for its purpose and kill it off and replace it when it becomes sick or no longer useful, like livestock.</li>
+                <li>We call this ephemerality of containers: expect them to come and go often and quickly.</li>
+                <li>From a development perspective, this means we need to design our applications to not rely on the presence of specific containers: just because a container was present for one operation, doesn't mean it will necessarily be around for the next.</li>
+                <li>Furthermore, developers need to design containers to start and stop rapidly. Time incurred in spool up and shutdown will multiply rapidly in large scale prodcution deployments.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Stateless versus stateful</h2>
+
+        <ul>
+            <li>Only stateless components scale well</li>
+            <li>Scaling stateful components is hard</li>
+            <li>Stateful: DB, Filesystem, Blob storage, Cache, etc</li>
+            <li>Developers: push stateful info out to volumes and databases</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>One thing that will break ephemerality really fast, is if we design containers that become stateful as they run, ie by accruing data internal to them. Traffic may then need to be routed to that specific container in order to access that data, and if the container is lost, we may lose critical info to our application.</li>
+                <li>Furthermore, stateful containers are hard to scale; I may be able to spin up new containers, but load balancing becomes nontrivial as not all containers have the same state, preventing me from doing a simple round robin across them.</li>
+                <li>As developers, we want to design our containers to be stateless whenever possible. Any information that needs to be retained should be retained in an external database or volume wherever possible, so that any container can look it up and pick up where another container left off.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Stateless versus stateful</h2>
+
+       <img src="src/modules/ddev/architecture/images/stateless-vs-stateful.png">
+
+        <aside class="notes">
+            <ul>
+                <li>One thing that will break ephemerality really fast, is if we design containers that become stateful as they run, ie by accruing data internal to them. Traffic may then need to be routed to that specific container in order to access that data, and if the container is lost, we may lose critical info to our application.</li>
+                <li>Furthermore, stateful containers are hard to scale; I may be able to spin up new containers, but load balancing becomes nontrivial as not all containers have the same state, preventing me from doing a simple round robin across them.</li>
+                <li>As developers, we want to design our containers to be stateless whenever possible. Any information that needs to be retained should be retained in an external database or volume wherever possible, so that any container can look it up and pick up where another container left off.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Service discovery</h2>
+
+        <ul>
+            <li>Containers are rescheduled frequently</li>
+            <li>Hard-coded routes to specific containers will constantly break</li>
+            <li>Use Docker's built-in DNS resolver for service names</li>
+        </ul>
+
+        <div class="col-6"><p>Bad</p><img src="src/modules/ddev/architecture/images/hard-wired.png" alt=""></div>
+        <div class="col-6"><p>Good</p><img src="src/modules/ddev/architecture/images/registry.png" alt=""></div>
+
+        <aside class="notes">
+            <ul>
+                <li>When services are ephemeral and their current location in the cluster is seemingly random (fully managed by the orchestration scheduler) we cannot hard wire services anymore. If service A needs to call service B, the former cannot know where to find an instance of the latter at any given time. We need an external mechanism that takes care of the coordination between service instances. This mechanism is called service discovery. Service A can ask an "authority" where it can find an instance of service B.</li>
+                <li>Docker provides this infrastructure for us in the form of the DNS table built into every Docker daemon. Docker EE also deploys Kubernetes' DNS server by default.</li>
+                <li>As developers, use it - route traffic to services by service name, do not attempt to connect to a specific container or pod and expect it to always be present.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Load balancing</h2>
+
+        <ul>
+            <li>Service-to-service communication essentially built-in load balancing</li>
+            <li>Another reason for statelessness</li>
+            <li>Design containers to participate in round-robin LB</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>The service-to-service design pattern we started out by describing is really just aggressive and default load balancing, done completely completely transparent by Docker EE.</li>
+                <li>As such, developers need to expect traffic to be balanced, usually round-robin style, across all the containers or pods in their service; this is just another reason why statelessness is so valuable in container design.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Health checking</h2>
+
+        <ul>
+            <li>Docker EE has no insight into your application logic</li>
+            <li>Must provide healthcheck orchestrator can probe for application health</li>
+            <li>Unhealthy containers/pods killed and restarted</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>Docker EE goes to great lengths to make sure your services and containers are alive and well, but if you application is misbehaving, there's no simple way for Docker to know that.</li>
+                <li>Developers need to provide some sort of healthcheck mechanism in their containers that the Docker daemon or kubelet can probe to determine if the details of the application are healthy.</li>
+                <li>Once provided with this way to test the health of a container, the orchestration engine can kill off unhealthy containers and restart them in an attempt to resolve the problem via the classic 'turn it off and on again' philosophy of troubleshooting.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Logging and monitoring</h2>
+
+        <ul>
+            <li>How do we troubleshoot distributed app?</li>
+            <li>Centralized logging, log collation &amp; attribution</li>
+            <li>Dashboards showing key metrics</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>When dealing with an enterprise application that consists of many services that each runs numerous instances on different nodes of a cluster and we have to analyze the behavior of the system and trace an unexpected event or problem we need a very robust and extensive logging.</li>
+                <li>Ideally we log as much as possible and all the logging information has to be aggregated at a central location where developers and operators alike can dig into this data.</li>
+                <li>We then need powerful search capabilities to dig into this vast amount of logging data. We're talking mega- and gigabytes of data per second produced by a somewhat busy system.</li>
+                <li>As developers designing these log messages, it pays to have some forsight into the specific questions distributed application architecture is going to lead to; what service is this log message from? Which container and which node produced it?</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Circuit breakers</h2>
+        <div class="col-6"><img src="src/modules/ddev/architecture/images/domino-effect.jpg" alt=""></div>
+        <div class="col-6">
+            <p>Avoid cascading failures</p>
+            <ul>
+                <li>Use cached (stale) data</li>
+                <li>Gracefully degrade functionality</li>
+                <li>Give failed service time to recover</li>
+            </ul>
+        </div>
+        <aside class="notes">
+            <ul>
+                <li>In a distributed application with many interacting parts, tight coupling or rigid expectations between services can lead to cascading failures.</li>
+                <li>Rather than a monolith simply falling over, we may have numerous healthy services accepting requests, with just one service unhealthy.</li>
+                <li>The encapsulation of service and container based design gives us a chance to do some damage control. 'Circuit breakers' like using stale data when requests are getting dropped or degrading functionality in a controlled manner are two such patterns that work especially well in a containerized environment.</li>
+                <li>This is another place where smart healthchecking comes into play; if your other services can remain alive and healthy at least long enough for orchestration engine's healthcheck to kill off and restart misbehaving containers or pod, problems can remain contained to a single service and be mitigated automatically.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Architecture Takeaways</h2>
+
+        <p>Container Developer To-Dos:</p>
+        <ul>
+            <li>Design for services interacting with other services</li>
+            <li>Be radically stateless</li>
+            <li>Expect containers to start and stop all the time</li>
+            <li>Use Docker EE's service discovery mechanisms</li>
+            <li>Provide healthchecks for everything</li>
+            <li>Use circuit breaking techniques for damage control</li>
+            <li>Design logs for distributed systems</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>The key shift in thinking developers need to make when designing containers is to plan for services to interact with other services, and to not assume anything about the number or status of individual containers in those services.</li>
+                <li>As such, containers need to be radically stateless; this underwrites ops' ability to scale applications at will, to recover from process failure, and to not have to consider the details of this container vs that container in our application logic.</li>
+                <li>Make sure your containers start and stop quickly, because they will - and as such, use Docker EE's onboard service discovery mechanisms rather than expecting to route traffic to specific, hard-wired containers.</li>
+                <li>If statelessness and fast starts and stops are achieved, then providing healthchecks enhances Docker EE's ability to automatically respond to application health problems; containers or pods reporting unhealthy from their healthcheck can be killed off and rescheduled somewhere else automatically.</li>
+                <li>While your healthchecks are killing and restarting one service's containers or pods, use circuit breakers to contain the damage and keep other services happy while their neighbour is being repaired.</li>
+                <li>Finally when designing logs, remember to include information that allows you to audit the container-relevant details of the message - what image, what container, what host etc.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+         <h2>Discussion</h2>
+ 
+         <ul>
+             <li>What are the relative strengths and weaknesses of monolithic versus microservice architecture?</li>
+             <li>Questions?</li>
+         </ul>
+ 
+         <aside class='notes'>
+             <ul>
+                 <li>Monolithic app's drawbacks derive not from the number of layers nor how data processing is distributed across them, but from the fact that the application is written as single, unified code base.</li>
+                 <li>The monolithic nature makes it difficult for developers to change an application with the agility and flexibility they need to keep pace with the expectations of mobile users, and for operations teams to scale the application up and down to match demand.</li>
+                 <li>A monolithic design hampers agility at several phases of the application development process.</li>
+                 <li>A microservices architecture is designed for better modularity making it harder for it to become a tangled mess of code. Multiple services, each with their own small codebase, are easier for developers to understand, maintain, and make changes.</li>
+                 <li>Disadvantages: more components to fail, developing and deploying distributed systems can be complex, testing a microservices-based application can be cumbersome</li>
+                 <li>There can be a scenario where one of the services may not be responding, forcing you to write extra code specifically to avoid disruption. Things can get more complicated when remote calls experience latency.</li>
+             </ul>
+             
+         </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>View logs for a container or service: <a href="http://dockr.ly/2ezdZdI">http://dockr.ly/2ezdZdI</a></li>
+            <li>Docker Reference Architecture: Docker Logging Design and Best Practices: <a href="http://dockr.ly/2gG6ZjG">http://dockr.ly/2gG6ZjG</a></li>
+            <li>Monitor Docker Trusted Registry: <a href="https://dockr.ly/2HIGTIw">https://dockr.ly/2HIGTIw</a></li>
+            <li>High availability architecture and apps with Docker EE: <a href="http://dockr.ly/1sqPrIH">http://dockr.ly/1sqPrIH</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about distributed application architecture</li>
+            </ul>
+        </aside>
+    </section>
+</section>
+<section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/sample-app/images/icon_lecture.png" class="slide_icon" alt="icon">Sample Application</h2>
+        <aside class="notes">
+            <ul>
+                <li>Most of the exercises of this workshop will be based on the same sample application. Let us look a bit more in detail on what this application does and how it is built.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Describe the components of a demonstration three tier web app</li>
+            <li>Build and run the sample app using Docker Swarm or Kubernetes</li>
+        </ul>
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Sample Application Architecture</h2>
+
+        <img src="src/modules/ddev/sample-app/images/sample-app.png" class="slide_icon" style="width: 457px; height: 400px;" alt="icon"></img>        
+
+        <aside class="notes">
+            <ul>
+                <li>We're using a Spring Boot based Java API as our backend. The build lifecylcle tool we're using is Maven. This kind of infrastructure is very typical for enterprises.</li>
+                <li>The backend also includes a Postgres database.</li>
+                <li>As frontend we're using a Node/Express JS based application that uses Mustache templates for the views.</li>
+                <li>Each service, database, backend API and UI live in their own container.</li>
+            </ul>
+        </aside>
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Sample Application - Components</h2>
+        <div class="row">
+            <div class="col-6">
+                <h3>Frontend</h3>
+                <ul>
+                    <li>Node/Express JS</li>
+                    <li>Dockerfile, inherit from Node<br>
+                        <div class="pre large"><span class="red-bg">FROM node:8-alpine</span>
+RUN mkdir /app
+WORKDIR /app
+COPY package.json /app/
+RUN npm install
+COPY ./src /app/src
+EXPOSE 3000
+CMD node src/server.js</div>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-6">
+                <h3>Backend</h3>
+                <ul>
+                    <li>Maven, pom.xml</li>
+                    <li>Dockerfile, inherit from Maven</li>
+                    <li>Multi-stage build<br>
+                        <div class="pre large"><span class="red-bg">FROM maven:3.5.0-jdk-8-alpine</span> AS appserver
+WORKDIR /app
+COPY pom.xml .
+RUN <span class="red-bg">mvn dependency:resolve</span>
+COPY . .
+RUN <span class="red-bg">mvn package</span>
+
+FROM java:8-jdk-alpine
+WORKDIR /app
+COPY --from=appserver /app/target/pets-api-1.0.0.jar .
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app/pets-api-1.0.0.jar"]</div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <aside class="notes">
+            <ul>
+                <li>Backend:</li>
+                <li>We're using Maven, so we have a "pom.xml" file</li>
+                <li>The API will run in a container so we have a Dockerfile</li>
+                <li>We inherit from a official Maven image. We're using the newest, lean, Alpine base version</li>
+                <li>Using multi stage build to keep resulting image small. We only need Maven to build the artifacts.</li>
+                <li>Frontend:</li>
+                <li>UI will run in container, so we have a Dockerfile</li>
+                <li>Inherit from official, lean, Alpine based node image</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Sample Application - App Definition</h2>
+        <p>Docker Compose</p>
+        <div class="row">
+            <div class="col-6">
+                <div class="pre" style="width:400px;">version: "3.1"
+
+services:
+  <span class="red-bg">database:</span>
+    build: 
+       context: database
+    image: ddev_db
+    environment:
+      POSTGRES_USER: gordonuser
+      POSTGRES_DB: ddev
+    ports:
+      - "5432:5432" 
+    networks:
+      - back-tier
+    secrets:
+      - postgres_password
+
+  <span class="red-bg">api:</span>
+    build:
+       context: api
+    image: ddev_api
+    ports:
+      - "8080:8080"
+      - "5005:5005"</div>
+            </div>
+            <div class="col-6">
+<div class="pre" style="width:400px;">    networks:
+      - front-tier
+      - back-tier
+    secrets:
+      - postgres_password
+
+  <span class="red-bg">ui:</span>
+    build:
+      context: ui
+    image: ddev_ui
+    ports:
+      - "3000:3000"
+    networks:
+      - front-tier
+
+secrets:
+  postgres_password:
+    file: ./devsecrets/postgres_password
+    
+networks:
+  front-tier:
+  back-tier:</div>
+            </div>
+        </div>
+    </section>
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/ddev/sample-app/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Workshop Sample Application</h2>
+        <p>Work through the 'Workshop Sample Application' exercise in the Docker for Enterprise Developers Exercises book.</p>
+    </section> 
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Sample applications: <a href="http://dockr.ly/2eU89rn">http://dockr.ly/2eU89rn</a></li>
+            <li>Dockerize a .NET core application: <a href="http://dockr.ly/2jb6GOQ">http://dockr.ly/2jb6GOQ</a></li>
+            <li>Dockerizing sample applications: <a href="http://dockr.ly/2jb4B5s">http://dockr.ly/2jb4B5s</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about sample application</li>
+            </ul>
+            
+        </aside>
+    </section>
+</section>
+<section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/edit-and-continue/images/icon_lecture.png" class="slide_icon" alt="icon">Edit and Continue</h2>
+        <aside class="notes">
+            <ul>
+                <li>As a developer we do not want containers to introduce friction into our workflow. Developers are used to work on their code, run it, find some bugs or unexpected behavior and then fix the code and re-run the application to see the result of their change. All this ideally happens in a very quick an fluid succession without lenghty interruptions. We call this way of coding **Edit and Continue**. Can we achieve the same when our code runs in a container?</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Mount a development environment inside a containerized execution environment</li>
+            <li>Configure automatic rebuilds and restarts of containerized processes</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Containers add Friction?</h2>
+
+        <img src="src/modules/ddev/edit-and-continue/images/build-run-edit.png"></img>
+
+        <aside class="notes">
+            <ul>
+                <li>When developing containerized software, we need to run and test our code in the containers that code will be shipped in, to guarnatee the portability of what we build.</li>
+                <li>Ideally as a developer I have my favorite code editor or IDE installed on my laptop. The editor runs directly on the host operating system (Mac OS-X or Windows) since containers are not really meant to be used to run applications with a UI</li>
+                <li>As a consequence the code that we produce and edit also lives in the filesystem of the host; how do we get it into the container it's supposed to live in?</li>
+                <li>Obvious naive solution:</li>
+                <li>
+                    <ul>
+                        <li>1. Add or edit code</li>
+                        <li>2. Build the container image</li>
+                        <li>3. Run a container with the new image</li>
+                        <li>4. Test and see if the outcome is as expected</li>
+                        <li>5. start over at point 1...</li>
+                    </ul>
+                </li>
+                <li>Doing this over and over again can add significant time overhead. Building the image takes some time for a realistic application or service even if we're leveraging the caching strategy of Docker. Also restarting the app every time and navigate to the part which we just changed might take some time. If we cannot provide a better way then developers will see containers as a burden rather than a benefit.</li>
+                <li>But we can do better...</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Mounting Code</h2>
+
+        <p>Mounting the source folder into the container:</p>
+        <div class="row">
+            <div class="col-6">
+                <img src="src/modules/ddev/edit-and-continue/images/build-run-mount-edit.png"></img>
+            </div>
+            <div class="col-6">
+                <pre>docker container run <span class="red-bg">-v $(pwd):/app</span> ... &lt;image name&gt;</pre>
+
+                <div style="padding-left: 10px">
+                    <p>Benefits:</p>
+                    <ul>
+                        <li>Container always has latest code</li>
+                        <li>No need to rebuild image</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <aside class="notes">
+            <ul>
+                <li>To avoid the hassle of constantly have to re-build the container image after each change we want to have a means to make code changes immediately available to the running container. How can we do that?</li>
+                <li>We can leverage volumes. We mount the host folder containing the source code into the container. Of course we need to match the directory where the source was copied into the image when building the image. In such a way the mounted code overwrites the code that is inherited from the image and the container always has the latest changes available.</li>
+                <li>As a consequence we do not have to rebuild the image every time code changes</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Auto Restart App</h2>
+        <p>Restart web server upon file change...</p>
+
+        <div class="row">
+            <div class="col-6">
+                <img src="src/modules/ddev/edit-and-continue/images/build-run-mount-edit-restart.png"></img>
+            </div>
+            <div class="col-6">
+                <pre>nodemon ./server.js 0.0.0.0 3000</pre>
+                <img src="/src/modules/ddev/edit-and-continue/images/auto-start.png" title="Auto Restart">
+            </div>
+        </div>
+
+        <aside class="notes">
+            <ul>
+                <li>Although the container now always has the latest code available the service running inside of the container won't be automatically restarted. We need to use a tool such as `nodemon` (or `watch`) for Node JS inside the container too, to automatically restart our service upon each code change.</li>
+                <li>Each major language or framework has some tools that allow us to auto-restart our application if a change in the set of watched files is detected. Most often this will be a web server like in the case of the little Node/Express JS application shown here.</li>
+                <li>In the given sample instead of starting the app with `npm start` one would use a tool like nodemon as shown in the code snippet and start the application with `npm run start-dev`.</li>
+                <li>Other notable examples are Python, Ruby, .NET Core hosted in Kestrel or Java hosted in Tomcat.</li>
+                <li>Having done this we should now be able to edit code and immediately see the service inside the container being restarted. Voila, we have **Edit and Continue** for services running inside a container.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/ddev/edit-and-continue/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Edit and Continue</h2>
+        <p>Work through the 'Edit and Continue' exercise in the Docker for Enterprise Developers Exercises book.</p>
+    </section> 
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Use volumes: <a href="http://dockr.ly/2vRZBDG">http://dockr.ly/2vRZBDG</a></li>
+            <li>Use bind mounts: <a href="http://dockr.ly/2wdstvn">http://dockr.ly/2wdstvn</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about edit and continue</li>
+            </ul>
+            
+        </aside>
+    </section>
+</section><section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/debugging/images/icon_lecture.png" class="slide_icon" alt="icon">Debugging</h2>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Connect an IDE to a process running in a container.</li>
+            <li>Debug containerized processes as if they were remote processes.</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Debugging</h2>
+
+        <ul>
+            <li>We want:
+                <ul>
+                    <li>Line by line debugging</li>
+                    <li>Variable inspection and modification</li>
+                    <li>Stack trace</li>
+                </ul>
+            </li>
+            <li>How to attach an IDE to a containerized process?</li>
+            <li><span class='keyword'>Debugging in container == Remote debugging</span></li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>In the previous module we have learned how to configure our system to achieve an **edit and continue** experience when running code in a container during development. The next step is to also enable debugging inside a container.</li>
+                <li>We want the usual features of a debugger such as stepping through the code line by line, the ability to inspect and change variables, to view the stack trace and many other features.</li>
+                <li>Luckily we do not have to redo everything since debugging code running in a container is basically the same as the well known remote debugging that allowed us to debug code running on a different machine than the one that the code editor or IDE is running on.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Debugging</h2>
+        <h3>Support through IDE</h3>
+        <table style="font-size:18pt;">
+            <thead>
+                <tr><th>Language</th><th>IDE/Tool</th><th>Example</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Java</td><td>IntelliJ, Eclipse, Netbeans</td><td>http://dockr.ly/2rmLhlU, http://bit.ly/2rFoALR</td>
+                </tr>
+                <tr>
+                    <td>.NET Core</td><td>Visual Studio Code</td><td>http://bit.ly/2rdVAKX</td>
+                </tr>
+                <tr>
+                    <td>Node JS</td><td>Visual Studio Code</td><td>http://dockr.ly/2ac5TVw</td>
+                </tr>
+                <tr>
+                    <td></td><td>Webstorm</td><td>http://bit.ly/2qDcNe1</td>
+                </tr>
+                <tr>
+                    <td>Ruby</td><td>RubyMine</td><td>http://bit.ly/2rmPgzd</td>
+                </tr>
+                <tr>
+                    <td>C++</td><td>VisualGDB</td><td>http://bit.ly/2rHvcdN</td>
+                </tr>
+                <tr>
+                    <td>Python/Django</td><td>PyCharm</td><td>http://bit.ly/2rdFnFg, http://bit.ly/2rn3zDy</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <aside class="notes">
+            <ul>
+                <li>Here we see an (incomplete) list of languages and IDEs that support debugging of code running inside a container. We also have links to posts or videos that show in detail how to configure your environment for remote debugging in containers.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/ddev/debugging/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Debugging</h2>
+
+        <p>Work through the 'Debugging in a Container' exercise in the Docker for Enterprise Developers Exercises book.</p>
+        
+        <aside class="notes">
+            <ul>
+                <li>Trainers: note that this exercise requires students to install an IDE on their laptop; depending on how locked-down student laptops are, this may or may not be possible. If more than one or two people in the class are not able to install the needed software, be prepared to do this exercise as a demo rather than an exercise.</li>
+            </ul>
+        </aside>
+    </section> 
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Discussion</h2>
+ 
+        <ul>
+            <li>What would you use to keep an eye on the metrics of your container? Why?</li>
+            <li>What would you do if you wanted to debug why your container won’t start at all (e.g.: initial command or entrypoint that immediately crashes)?</li>
+            <li>Questions?</li>
+        </ul>
+ 
+        <aside class='notes'>
+            <ul>
+                <li>1. "docker stats &lt;container ID&gt;" - It'll give you a live stream of resource usage, so you can see just how much memory you’ve leaked so far.</li>
+                <li>2. "docker commit &lt;container ID&gt; my-broken-container &amp;&amp; docker run -it my-broken-container /bin/bash" - Save the current state of the shut-down container as a new image, and start that with a different command to avoid your existing failures.</li>
+            </ul>
+             
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Live debugging with Docker: <a href="http://dockr.ly/2ac5TVw">http://dockr.ly/2ac5TVw</a></li>
+            <li>Live debugging Java with Docker: <a href="http://dockr.ly/2rmLhlU">http://dockr.ly/2rmLhlU</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about debugging</li>
+            </ul>
+            
+        </aside>
+    </section>
+</section><section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/docker-compose/images/icon_lecture.png" class="slide_icon" alt="icon">Docker Compose</h2>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Describe and deploy a multi-service app using Docker Compose</li>
+            <li>Capture configuration differences in environment-specific compose files</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Docker Compose</h2>
+
+        <p>Define multiple Docker Compose files</p>
+        <ul>
+            <li>For development (front- vs. back-end)</li>
+            <li>Running unit- and/or integration tests</li>
+            <li>Running end-to-end tests</li>
+            <li>Build artifacts on CI server</li>
+            <li>Run tests on CI server</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>Docker Compose is a tool for orchestrating an application consisting of multiple interacting services (or containers) on a single node.</li>
+                <li>We can define multiple docker-compose.yml files, each covering a specific scenario such as:</li>
+                <li>
+                    <ul>
+                        <li>front-end development: includes latest release of backend</li>
+                        <li>back-end development: does not include UI parts. Dev uses tools such as Postman (REST client) to access back-end API</li>
+                        <li>running unit and/or integration tests</li>
+                        <li>running end-to-end tests</li>
+                        <li>CI server</li>
+                    </ul>
+                </li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Backend Development</h2>
+
+        <div class="row">
+            <div class="col-6">
+                <div class="pre">version: '3.1'
+services:
+    api:
+        build: 
+            context: api
+            dockerfile: <span class="red-bg">Dockerfile.dev</span>
+        <span class="red-bg">ports:</span>
+            - 8080:8080
+        <span class="red-bg">volumes:</span>
+            - ./api:/usr/src/pets-api
+        networks:
+            - pets
+    watcher:
+        build: 
+            context: api
+            dockerfile: Dockerfile.dev
+        volumes:
+            - ./api:/usr/src/pets-api
+        <span class="red-bg">command: mvn fizzed-watcher:run</span>
+        networks:
+            - pets
+networks:
+    pets:</div>
+            </div>
+            <div class="col-6">
+                <ul>
+                    <li>Development specific Dockerfile</li>
+                    <li>Mounting code into container</li>
+                    <li>Opening port to access via e.g. <code>curl</code></li>
+                    <li>Watcher container to auto-compile</li>
+                </ul>
+            </div>
+        </div>
+        <aside class="notes">
+            <ul>
+                <li>Here we have a typical Docker compose file as it could be used when developing a Spring Boot based backend API.</li>
+                <li>To build the images for the services we use a special Dockerfile that includes some development time only commands and/or components.</li>
+                <li>To achieve edit and continue experience we mount source code and use a separate watcher container that uses the same source as the api container and rebuilds the API in case one of the observed files changes</li>
+                <li>We also open a port in the API container to be able to access it e.g. via curl or Postman</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Frontend Development</h2>
+        <div class="row">
+            <div class="col-6">
+                <div class="pre">version: '3.1'
+services:
+  api:
+    <span class="red-bg">image: &lt;username&gt;/pets-api:1.4</span>
+    networks:
+       - pets
+  ui:
+    build: 
+      context: ui
+      dockerfile: <span class="red-bg">Dockerfile-dev</span>
+    ports:
+      - 3000:3000
+    <span class="red-bg">volumes:</span>
+      - ./ui/src:/app/src
+      - ./ui/package.json:/app/package.json
+    <span class="red-bg">command: nodemon src/server.js 0.0.0.0 3000</span>
+    networks:
+      - pets
+networks:
+  pets:</div>
+            </div>
+            <div class="col-6">
+                <ul>
+                    <li>Use specific version of backend image</li>
+                    <li>Use development specific Dockerfile</li>
+                    <li>Mount UI code into container</li>
+                    <li>Use auto restart in case of change</li>
+                </ul>
+            </div>
+        </div>
+        <aside class="notes">
+            <ul>
+                <li>Here we have a typical Docker compose file as it could be used when developing a Node JS based frontend.</li>
+                <li>As front-end developers we're not interested in the internals of the backend. For us the backend is just a black box with a well defined API that we access. Thus we do not work with the source code of the backend but rather use a compiled image of a very specific version of the backend.</li>
+                <li>To build the images for the services we use a special Dockerfile that includes some development time only commands and/or components.</li>
+                <li>To achieve edit and continue experience we mount source code and use a special command to start the app in a mode that auto-starts the app in case one of the observed code files changes.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/ddev/docker-compose/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Docker Compose</h2>
+        <p>Work through the 'Docker Compose' exercise in the Docker for Enterprise Developers Exercises book.</p>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Discussion</h2>
+ 
+        <ul>
+            <li>What are some pros and cons of having different compose files for different environments?</li>
+            <li>Questions?</li>
+        </ul>
+ 
+        <aside class='notes'>
+            <ul>
+                <li>Pro: The compose file gives you a version-controllable manifest for application configuration; this is especially important to have a paper trail for when config changes as you move through environments.</li>
+                <li>Pro: creates an opportunity to pull config out of trasient environments and capture it in a central place; compare pulling config out of an environment specific kv store (what if the kv store goes away or changes?) to having that static config in a central manifest like a docker-compose file.</li>
+                <li>Con: Beware invalidating test results. An application that passes testing, especially integration testing, in one environent with one docker compose file may not necessarily pass in another environment with a different compose file.</li>
+            </ul>
+             
+        </aside>
+    </section> 
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Docker compose reference: <a href="http://dockr.ly/2iHUpeX">http://dockr.ly/2iHUpeX</a></li>
+            <li>Overview of Docker compose: <a href="http://dockr.ly/2jh9kjV">http://dockr.ly/2jh9kjV</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about debugging</li>
+            </ul>
+            
+        </aside>
+    </section>
+</section><section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/testing/images/icon_lecture.png" class="slide_icon" alt="icon">Testing</h2>
+
+        <aside class="notes">
+            <ul>
+                <li>As responsible developers we can never allow untested code to go into production; this has nothing to do with containers per se but applies to any piece of software that runs on any kind of infrastructure.</li>
+                <li>In this module we're going to learn techiniques on how we can test containerized software on one hand and how the use of containers can decrease the friction of testing or make new testing scenarios accessible to developers and/or DevOps.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Create unit, API, stress and integration tests appropriate for containerized applications.</li>
+        </ul>
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Categories &amp; Characteristics<br>of Tests</h2>
+
+        <ul>
+            <li>Unit Tests</li>
+            <li>Integration Tests</li>
+            <li>API Tests</li>
+            <li>Stress and Load Tests</li>
+            <li>End-to-End Tests</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>Unit tests: This are tests that test exactly one single piece of code, e.g. a function, component or class. Every external dependency of this software under test (sut) is abstracted, or as we say stubbed or mocked. Tests are usually tightly coupled to the sut.</li>
+                <li>Integration Tests: These are tests that validate the behavior of multiple interacting components. It is still possible that certain external components or dependencies are mocked or stubbed. Usually test code is still mostly tightly coupled to the system under test.</li>
+                <li>API Tests: As the name implies, these are tests that strictly access only the public API of a component. Usually these are similar to integration tests as they tests many interacting components. Usually only very few external dependencies are mocked or stubbed such as 3rd party credit card validation APIs or access to difficult to setup or expensive external resources.</li>
+                <li>Stress and Load Tests: With these kind of tests we validate how our code is working when many users concurrently access the system or when the system has to deal with production like quantities of data/state. Often they resemble API tests with the difference that we use production like amounts of data and/or spin up hundreds or thousands of threads that concurrently access the component.</li>
+                <li>End-to-End Tests: These kind of tests simulate an end user or an external system using the application. In this scenario the whole application with its many components or services is running. The tests should assume that everything is setup as it will be on a production system.</li>
+            </ul>
+        </aside>
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Unit Tests</h2>
+
+        <div class="row">
+            <div class="col-5">
+                <img src="src/modules/ddev/testing/images/unit-testing.png" alt="">
+            </div>
+            <div class="col-6" style="padding-left: 20px;">
+                <ul>
+                    <li>Test a small &amp; isolated piece of code</li>
+                    <li>All external dependencies are mocked</li>
+                    <li>Test code is tightly coupled with SUT</li>
+                    <li>Test code and SUT run in same container</li>
+                </ul>
+            </div>
+        </div>
+
+        <aside class="notes">
+            <ul>
+                <li>Unit tests: This are tests that test exactly one single piece of code, e.g. a function, component or class. Every external dependency of this software under test (sut) is abstracted, or as we say stubbed or mocked. Tests are usually tightly coupled to the sut. Thus the test code and the application code under test run in the same container.</li>
+            </ul>
+        </aside>
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Integration Tests</h2>
+
+        <div class="row">
+            <div class="col-6">
+                <img src="src/modules/ddev/testing/images/integration-testing.png" alt="">
+            </div>
+            <div class='col-6'>
+                <ul>
+                    <li>Test &amp; validate multiple interacting components</li>
+                    <li>Some external dependencies are mocked</li>
+                    <li>Test code is tightly coupled with SUT</li>
+                    <li>Test code and SUT run in same container</li>
+                </ul>
+            </div>
+        </div>
+      
+        <aside class="notes">
+            <ul>
+                <li>Integration Tests: These are tests that validate the behavior of multiple interacting components. It is still possible that certain external components or dependencies are mocked or stubbed. Usually test code is still mostly tightly coupled to the system under test. Thus once again the test code and the application code under test run in the same container.</li>
+            </ul>
+        </aside>
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>API Tests</h2>
+
+        <div class="row">
+            <div class="col-5">
+                <img src="src/modules/ddev/testing/images/api-testing.png" alt="">
+            </div>
+            <div class="col-6" style="padding-left: 20px;">
+                <ul>
+                    <li>Test &amp; validate service via public API</li>
+                    <li>Some (expensive) external dependencies can be mocked</li>
+                    <li>Test code is loosley coupled with SUT</li>
+                    <li>Test code and SUT run in different containers</li>
+                </ul>
+            </div>
+        </div>
+
+        <aside class="notes">
+            <ul>
+                <li>API Tests: As the name implies, these are tests that strictly access only the public API of a component or service. Usually these are similar to integration tests as they tests many interacting components. Usually only very few external dependencies are mocked or stubbed such as 3rd party credit card validation APIs or access to difficult to setup or expensive external resources. The test code runs in its own container separate from the service under test.</li>
+            </ul>
+        </aside>
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Stress &amp; Load Tests</h2>
+
+        <ul>
+            <li>Test code under load</li>
+            <li>Use production like environments, data quantities and concurrent connections</li>
+            <li>Test code is loosley coupled with SUT</li>
+            <li>Test code and SUT run in different containers</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>Stress and Load Tests: With these kind of tests we validate how our code is working when many users concurrently access the system or when the system has to deal with production like quantities of data/state. Often they resemble API tests with the difference that we use production like amounts of data and/or spin up hundreds or thousands of threads that concurrently access the component.</li>
+            </ul>
+        </aside>
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>End-to-end Tests</h2>
+
+        <div class="row">
+            <div class="col-6">
+                <img src="src/modules/ddev/testing/images/e2e-testing.png" alt="">
+            </div>
+            <div class='col-6'>
+                <ul>
+                    <li>Test whole application end-2-end</li>
+                    <li>Use production like environments, data quantities and concurrent connections</li>
+                    <li>Test code automates UI</li>
+                    <li>Test code and SUT run in different containers</li>
+                </ul>
+            </div>
+        </div>
+
+        <aside class="notes">
+            <ul>
+                <li>End-to-End Tests: These kind of tests simulate an end user or an external system using the application. In this scenario the whole application with its many components or services is running. The tests should assume that everything is setup as it will be on a production system.</li>
+                <li>Often these kind of tests run on a SaaS provider like [SauceLabs](https://saucelabs.com/) but we can also run e2e tests in dedicated containers that automate e.g. a headless browser using [Selenium](http://www.seleniumhq.org/). What truly happens is that the test functions simulate a user that is manipulating the (browser based) user interface like e.g. clicking menus or buttons, filling out text fields or checking some radio buttons or checkboxes.</li>
+            </ul>
+        </aside>
+    </section>
+    
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/ddev/testing/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Unit, API &amp; E2E Tests</h2>
+        <p>Work through the exercises
+            <ul>
+                <li>Unit Tests</li>
+                <li>API Tests</li>
+                <li>End-to-End Tests</li>
+            </ul> 
+        </p>
+        <p>in the Docker for Enterprise Developers Exercises book.</p>
+    </section> 
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Discussion</h2>
+ 
+        <ul>
+            <li>What new tests become more important after refactoring a monolithic application into multiple containerized services?</li>
+            <li>Questions?</li>
+        </ul>
+ 
+        <aside class='notes'>
+            <ul>
+                <li>API testing becomes crucial, since each of those containerized services will in some sense have its own API so it can interact with all the rest.</li>
+                <li>Network testing becomes a crucial element of integration testing: what happens when connections fail? Are retries done in a sensible fashion?</li>
+                <li>Consider testing for good behavior at container spin up and shut down: does the container come on line quickly? Does it shut down cleanly upon receipt of a sigterm or sigkill?</li>
+                <li>What happens when one service goes down? Do the other services that use it degrade gracefully? Does that degraded state function as it should?</li>
+            </ul>             
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Continuous integration testing with Docker: <a href="http://dockr.ly/2xSlLXM">http://dockr.ly/2xSlLXM</a></li>
+            <li>Scale testing Docker swarm to 30000 containers: <a href="http://dockr.ly/2smWgvf">http://dockr.ly/2smWgvf</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about testing</li>
+            </ul>
+            
+        </aside>
+    </section>
+</section><section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/service-discovery/images/icon_lecture.png" class="slide_icon" alt="icon">Service Discovery</h2>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Route traffic between containers using orchestrator-driven service discovery</li>
+            <li>Compare and contrast service discovery in Swarm and Kubernetes</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Service Discovery</h2>
+
+        <p>Bad: Hard Wiring...</p>
+        <img src='src/modules/ddev/service-discovery/images/service-discovery-bad.png'></img>
+        
+        <aside class="notes">
+            <ul>
+                <li>Earlier we have seen that in a highly distributed and highly available application architecture we need service discovery.</li>
+                <li>We have multiple service instances that need to communicate with each other like in the image.</li>
+                <li>It is not possible to achieve high availability and scalability if we hard-wire all services with each other.</li>
+                <li>Service instances come and go (i.e. are ephemeral) at will and different service types are distributed accross many cluster nodes.</li>
+                <li>So, we need an external authority which keeps track of the topology of all service instances contributing to our application.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Service Discovery</h2>
+
+        <div class='row'>
+            <div class='col-6'>
+                <p>Good: Registry Service</p>
+                <img src='src/modules/ddev/service-discovery/images/service-discovery-good.png'></img>                
+            </div>
+            <div class='col-6'>
+                <ul>
+                    <li>Docker provides <span class='keyword'>embedded DNS</span> for container and service names</li>
+                    <li>Address traffic to services by name</li>
+                </ul>
+            </div>
+        </div>
+
+        <aside class="notes">
+            <ul>
+                <li>The Docker EE platform has such an integrated "external" authority which keeps track of the location of the service instances.</li>
+                <li>When using the SwarmKit as orchestration engine then each Docker host has a DNS service that helps to do exactly the job mentioned above of keeping track of the name and location of service instances.</li>
+                <li>If on the other hand we're using Kubernetes as orchestration engine then Docker EE has the so called "kube-dns" service deployed in the cluster that serves that purpose.</li>
+                <li>So, when a service A requests to communicate with a service B the following happens:</li>
+                <li>Service A "asks" the embedded DNS for an instance of service B</li>
+                <li>DNS provides the necessary info to service A</li>
+                <li>Service A uses this information to connect with service B</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Docker Swarm</h2>
+        <h3>Container Network Model</h3>
+        <img src='src/modules/ddev/service-discovery/images/cnm-simplified.png'></img>
+
+        <aside class='notes'>
+            <ul>
+                <li>The following is true when using SwarmKit as orchestration engine.</li>
+                <li>Service discovery is restricted to networks. So let's talk about a network in the context of the Docker platform.</li>
+                <li>At high level, docker thinks about networking with an abstraction called the Container Network Model (CNM) that consists of 3 parts:</li>
+                <li>The container (network) sandbox, which firewalls containers by default.</li>
+                <li>The network endpoint, which serves as a controlled port in and out of the container sandbox</li>
+                <li>The network itself, which is any device that facilitates inter-container communication.</li>
+                <li>If you think about it for a moment, the CNM is in some sense very vague; anything that satisfies these requirements is a valid implementation option. Just like we saw with containerization itself, Docker leverages battle-tested kernel features and linux tools to realize the CNM in practice.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Docker Swarm: Network Firewalls</h2>
+        <img src='src/modules/ddev/service-discovery/images/disjoint-network.png'></img>
+
+        <aside class='notes'>
+            <ul>
+                <li>The following is true when using SwarmKit as orchestration engine.</li>
+                <li>All docker networks, bridge or otherwise, are firewalled from each other by default.</li>
+                <li>In the next exercise, you'll set up a situation similar to this, and see that containers on different networks can't talk to each other.</li>
+                <li>This behavior underwrites another recommendation for hardening your applications: if two containers don't need to be plugged into the same network, don't. Take advantage of the strict extra layer of container firewalling Docker provides.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Docker Swarm: Network Firewalls</h2>
+        <img src='src/modules/ddev/service-discovery/images/overlap-network.png'></img>
+        <pre class='large'>docker network connect my_bridge u2</pre>
+
+        <aside class='notes'>
+            <ul>
+                <li>If we do need containers to be able to communicate with each other, we can plug a container into as many different networks as required.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Kubernetes: Networking</h2>
+        <img src="src/modules/ddev/service-discovery/images/kube-networking.png" alt="Kube Networking">
+        <p>Requirements</p>
+        <ul>
+            <li>Pod &lt;--&gt; Pod without NAT</li>
+            <li>Node &lt;--&gt; Pod without NAT</li>
+            <li>Pod's peers find it at the same IP it finds itself</li>
+        </ul>
+        <aside class="notes">
+            <ul>
+                <li>Contrary to Docker Swarm in Kubernetes service discovery works accross the whole cluster. So let's talk a bit about the Kubernetes networking model.</li>
+                <li>Kubernetes does not have a strict opinion on how networking between pods has to be implemented. It only requests the following 3 characteristics of a valid networking implementation:</li>
+                <li>(1) All pods can communicate with all other pods without NAT</li>
+                <li>(2) All nodes running pods can communicate with all pods (and vice-versa) without NAT</li>
+                <li>(3) IP that a pod sees itself as is the same IP that other pods see it as</li>
+                <li>In our sample we have two nodes on a subnet 172.10.0.0/16 and all pods are on subnet 10.1.0.0/16 while node1 has subnet 10.1.1.0/24 and node2 has 10.1.2.0/24 reserved for its respective pods.</li>
+                <li>According to the requirements (1) pod A needs to be able to rech pod B, pod C and pod D without NAT. (2) Furthermore node 1 and 2 need to be able to reach all pods A to D. (3) Finally pod A sees its own IP as 10.1.1.2 and all other pods in the network see pod A with the same IP 10.1.1.2 and can reach it accordingly.</li>
+                <li>To elaborate a bit on the 3rd point: processes running inside any container of pod A see their IP as 10.1.1.2.</li>
+                <li>Now Kubernetes leaves it open on how the implementation of the implementation allows this communication say through L2 switching, L3 and L4 routing.</li>
+                <li>Note this is very analogous to what Docker mandates from a network implementation. It "only" has to follow the so called Container Networking Model (CNM) which leads to various implementations such as Bridge, Overlay, MacVLAN, etc.</li>
+
+                <li>Side note to the trainer: why the emphasis on "no NAT"? According to Wikipedia: "Network address translation (NAT) is a method of remapping one IP address space into another by modifying network address information in IP header of packets while they are in transit across a traffic routing device.".</li>
+                <li>Now it is Kubernetes' goal to make the network topology in a cluster as simple as possible such as that no host port mapping or network address translation is needed to reach any pod or any node in the cluster from a given pod or node. Every cluster node and pod thus has to have a routable IP address that does not need any such network address translation.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Kubernetes: Namespaces</h2>
+        <img src="src/modules/ddev/service-discovery/images/kube-service-discovery.png" alt="Kubernetes Service Discovery">
+        <aside class="notes">
+            <ul>
+                <li>Kubernetes has the concept of namespaces. In the sample sketch we have the two namespaces blue and red.</li>
+                <li>As mentioned before, in Kubernetes service discovery works cluster wide.</li>
+                <li>If we now want to access a service "payment" from a service "web" we can do that via name of the service and its reserved port number as shown in yellow on the sketch.</li>
+                <li>If from "web" we want to access service "inventory" which is in another namespace then we have to prefix the name of the service with the namespace name as shown in orange in the sketch.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/ddev/service-discovery/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Service Discovery</h2>
+        <p>Work through the 'Service Discovery' exercise in the Docker for Enterprise Developers Exercises book.</p>
+    </section> 
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Discussion</h2>
+ 
+        <ul>
+            <li>What are some pros and cons of orchestrator-based service discovery?</li>
+            <li>Questions?</li>
+        </ul>
+ 
+         <aside class='notes'>
+            <ul>
+                <li>Pro: reduces boilerplate by abstracting away application scale and underlying infrastructure. Applications routing traffic to a service by service name don't need to know anything about how many instances there are of another service, or anything about the real IPs or network instances are hosted at; the orchestrator deals with all that discovery and routing for you.</li>
+                <li>Pro: simplifies your stack. No need for key value stores or load balancers between application components when all that functionality is integrated into the orchestrator.</li>
+                <li>Con: creates pressure for to engineer everything to be stateless. While things like sticky sessions are possible, they require more coordination between application logic, configuration and operations.</li>
+            </ul> 
+         </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Service discovery and links: <a href="http://dockr.ly/2gQIctq">http://dockr.ly/2gQIctq</a></li>
+            <li>Manage swarm service networks: <a href="http://dockr.ly/2gQjG82">http://dockr.ly/2gQjG82</a></li>
+            <li>Docker Reference Architecture: UCP Service Discovery and Load Balancing: <a href="http://dockr.ly/2rbxDDX">http://dockr.ly/2rbxDDX</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about service discovery</li>
+            </ul>
+            
+        </aside>
+    </section>
+</section><section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/defensive-programming/images/icon_lecture.png" class="slide_icon" alt="icon">Defensive Programming</h2>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Identify hazards posed by container orchestration that need to be handled effectively</li>
+            <li>Write defensive logic that handles microservice outages</li>
+            <li>Define and implement circuit breaking patterns in containers</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Defensive Programming</h2>
+
+        <ul>
+            <li>SIGTERM versus SIGKILL</li>
+            <li>Availability of external service not guaranteed</li>
+            <li>Stale data vs. no data</li>
+            <li>Fail fast</li>
+            <li>Circuit breakers</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>Defensive coding style is an important factor in the overall goal to achieve robust and scalable enterprise applications, able to deal with situations like:</li>
+                <li>Your application or service should survive an unforeseen termination.</li>
+                <li>We have to assume other external services are not always available.</li>
+                <li>Sometimes when an external service is not available it is better to serve stale data to the caller than failing the whole request.</li>
+                <li>We should not start an operation at all, that is fail immediately, if we have incomplete or wrong input data.</li>
+                <li>To avoid cascading failures we need something like a circuit breaker in place.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>SIGTERM versus SIGKILL</h2>
+
+        <ul>
+            <li>SIGTERM and SIGKILL issued by orchestration engine</li>
+            <li>Stateless services are best</li>
+            <li>Make failure recoverable:
+                <ul>
+                    <li>Transactions</li>
+                    <li>Compensating actions</li>
+                    <li>Idempotency</li>
+                </ul>
+            </li>
+        </ul>
+        <aside class="notes">
+            <ul>
+                <li>Your application or service should survive a SIGKILL; these may be issued by the swarm scheduler (or kubelet in case of Kubernetes) in the event of a non-responsive unhealthy container, and should also be anticipated from any arbitrary source.</li>
+                <li>If the application or the service is stateless, then this is not a problem at all, but if it is a stateful component then we have to make sure that we are not getting into a corrupt state by an unforeseen termination of our service.</li>
+                <li>Rely on transaction-based model, eg many relational DBs</li>
+                <li>Application logic to identify and compensate for incomplete state changes</li>
+                <li>Idempotency so that aborted operations can be repeated to arrive at the desired end state, regardless of what state a previous attempt left the system in.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>External Service not Available</h2>
+
+        <ul>
+            <li>Distributed services live and die independently</li>
+            <li>Docker DNS propagation <span class='keyword'>eventually consistent</span></li>
+            <li>Retry</li>
+            <li>Increase wait time between calls</li>
+            <li>Log warning</li>
+            <li>Also see: <span class="keyword">Circuit Breaker</span></li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>If our service depends on other, external services we have to always assume that their availability is flaky. Thus we need to make sure that we deal with the situation that such a service is not available at all for an extended period of time or we need to retry the access to give the (external) service time to recover.</li>
+                <li>This is especially true in a distributed application architecture paradigm; the presence of one of your application's component services does not imply anything about the health of another.</li>
+                <li>Also remember that Docker EE's service and container DNS lookup is propagated by an eventually consistent gossip network; just because a service has been started by the scheduler doesn't mean it is instantly reachable!</li>
+                <li>If a service does not respond at all or times out then we can try to repeat the call</li>
+                <li>If the call fails multiple times then we should increase the time between susequent calls to not unnecessarily stress the system. Usually one uses a so called "exponential backoff" algorithm in this context.</li>
+                <li>We should log each failed call (e.g. with severity "warning")</li>
+                <li>Later we will discuss a technique used to avoid cascading failures: the circuit breaker pattern</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Stale Data versus No Data</h2>
+
+        <p>If external service is not available:</p>
+        <ul>
+            <li><span class="keyword">Fail</span> if critical data</li>
+            <li>Serve <span class="keyword">stale data</span> if freshness is less important</li>
+            <li>Serve <span class="keyword">no data</span> if freshness is important</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>Sometimes when an external service is not available it is better to serve stale data to the caller than failing the whole request. Various techniques such as local caching can be used.</li>
+                <li>If the data is critical to the overall operation then we should fail the whole request</li>
+                <li>If freshness of data is not very important then we should serve stale data instead that has been cached locally</li>
+                <li>If freshness of data is important then we should deliver a degraded service with this part of the data missing. It is better for the caller to know that there is no data currently available then provide stale (and thus maybe misleading) data.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Fail Fast</h2>
+
+        <ul>
+            <li>Always check input data first</li>
+            <li>Log clear failure reason</li>
+            <li>Yet, do not disclose too much</li>
+            <li>Take advantage of service rescheduling</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>If our service is called with invalid or incomplete data then we should fail fast. That is, we should not try to start an operation just to realize later on that we cannot correctly finish it due to the lack of or due to wrong data.</li>
+                <li>Always do upfront validation of input data and always assume the worst.</li>
+                <li>Respond with a clear error message indicating what is missing</li>
+                <li>except when security and confidential data is involved. E.g. never indicate that e.g. the password is wrong in an invalid login attempt but rather respond with something like "Invalid Credentials provided". This leaves it open whether the username/email or password was wrong. Hackers have a harder time to compromise your system.</li>
+                <li>Remember that Docker EE will reschedule service containers or pods that exit; consider leveraging this by designing containers that abort early, especially if the problem seems to be internal to that container, rather than persisting a container that got itself in an unhealthy state.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Circuit Breakers</h2>
+
+        <div class="row">
+            <div class="col-7">
+                <ul>
+                    <li>Service separation facilitates damage control</li>
+                    <li>Avoid <span class="keyword">Domino Effect</span></li>
+                    <li>Give failed service/system time to recover</li>
+                    <li>Gracefully degrade experience</li>
+                    <li>Serve stale (or no) data instead</li>
+                </ul>
+                <p style="margin-top:100px;">Netflix Hystrix</p>
+            </div>
+            <div class="col-5">
+                <img src="src/modules/ddev/defensive-programming/images/domino-effect.jpg">
+            </div>
+        </div>
+        <img src="src/modules/ddev/defensive-programming/images/netflix-hystrix.png" alt="">
+
+        <aside class="notes">
+            <ul>
+                <li>In a complex and highly distributed application we should put circuit breakers in place such as that when one of the many services is not available or responds (too) slowly this doesn't cause a cascading failure of the whole system.</li>
+                <li>We want to avoid the so called "Domino effect"</li>
+                <li>Since our application is divided among many containers, and possibly many services, we have an opportunity to damage control failures by designing services that tolerate the absence of other services; we may be able to completely eliminate downtime for some functionality, even in the event of a complete catastrophic failure of one service.</li>
+                <li>If a service is malfunctioning or responding too slowly we need to give it time to recover. If we stress it too much this won't succeed.</li>
+                <li>Instead of retrying forcefully to get a response from the unavailable service we'd rather gracefully degrade the overall experience and return an incomplete answer to the caller.</li>
+                <li>If possible we can also serve stale data instead. That would imply that we have some local caching in place.</li>
+                <li>For possible implementations have a look at Netflix Hystrix (https://github.com/Netflix/Hystrix) or Istio (http://bit.ly/2C28LR8)</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/ddev/defensive-programming/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Defensive Programming</h2>
+        <p>Work through the 'Defensive Programming' exercise in the Docker for Enterprise Developers Exercises book.</p>
+    </section>
+    
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Discussion</h2>
+ 
+        <ul>
+            <li>What are some container-specific situations that should be defended against?</li>
+            <li>Questions?</li>
+        </ul>
+ 
+        <aside class='notes'>
+            <ul>
+                <li>sigterm, sigkill receipt upon (re)scheduling decisions</li>
+                <li>stale service discovery information due to eventually consistent control planes</li>
+                <li>unstable sessions (ie subsequent calls to a service may get served by different containers if session handling hasn't been configured as expected)</li>
+            </ul>     
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Controlling startup order in Compose: <a href="http://dockr.ly/2vTPjYE">http://dockr.ly/2vTPjYE</a></li>
+            <li>Trapping signals in Docker containers: <a href="http://bit.ly/2wZVKZK">http://bit.ly/2wZVKZK</a></li>
+            <li>Netflix Hystrix: <a href="https://github.com/Netflix/Hystrix">https://github.com/Netflix/Hystrix</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about defensive programming</li>
+            </ul>
+            
+        </aside>
+    </section>
+</section><section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/logging-and-error-handling/images/icon_lecture.png" class="slide_icon" alt="icon">Logging &amp; Error Handling</h2>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Instrument a containerized application with logging output</li>
+            <li>Configure the Docker daemon's logging driver</li>
+            <li>Name principles of error handling fit for orchestrated applications</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Logging</h2>
+
+        <div class="row">
+            <div class="col-6">
+                <p>Default Logging</p>
+                <img src="src/modules/ddev/logging-and-error-handling/images/central-logging-why.png" alt="" style="width:80%"></img>
+            </div>
+            <div class="col-6">
+                <p>Centralized Logging</p>
+                <img src="src/modules/ddev/logging-and-error-handling/images/central-logging-what.png" alt="" style="width:80%"></img>
+            </div>
+        </div>
+
+        <aside class="notes">
+            <ul>
+                <li>Left figure:</li>
+                <li>A single containerized application typically consists of many processes running on many nodes; where with a monolith we may have had a single, unified stream of logs, all these containers are now producing independent, concurrent logs which will need to be collated to understand inevitable container failures.</li>
+                <li>When dealing with many interacting components running on different nodes it is just not realistic to chase after each component's logging information individually by e.g. ssh into a node and analyzing the produced log files.</li>
+                <li>Right Figure</li>
+                <li>Only by aggregating all and every log trail of each component in a central location one can successfully troubleshoot complex problems in a short amount of time,</li>
+                <li>and time correlating events happening across different components in the system is possible</li>
+                <li>Quick search and filtering in big amounts of (logging) data</li>
+                <li>Graphical display of key indicators is possible</li>
+                <li>Data mining, trend analysis</li>
+                <li>Don't need (ssh) access to swarm nodes (which can be a security risk)</li>
+                <li>No local logs that might fill up your disk space and need to be backed up</li>
+                <li>Security is another reason for centralized logging. If a hacker manages to intrude a log they can try to erase the local logs but since logging information is forwarded to a central log aggregator they have no chance to get there.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Logging</h2>
+
+        <p><span class="keyword">Where</span> and <span class="keyword">What</span> to log?</p>
+        <ul>
+            <li>Send logging info to StdOut and StdErr</li>
+            <li>Add severity (debug, info, warn, err, fatal)</li>
+            <li>Add service relevant unique identifier</li>
+            <li>Do <span class="alert">NOT</span> add sensitive or personal information!</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>All logging information should always be sent by the app to StdOut and StdErr. From there Docker will make it available to whatever logging driver we specify for our Docker host or for a specific container.</li>
+                <li>It is very important to categorize logging messages by their severity. A rather broadly used list of categories are: debug, info, warning, error and fatal. Logging drivers or aggregators can then be instructed to only show entries that are of a certain severity or higher.</li>
+                <li>To efficiently use logging information it is important to include some application specific or relevant unique identifier in the logging information. This can be something like the product number/ID in an inventory application.</li>
+                <li>But: at all means make sure to NEVER leak PII (personal identifiable information) or SPI (sensitive personal information) data or secrets into the logging information (such as SSN, CC info, secrets, etc.). This is a security risk since logging information might leave the secure boundaries of a production system.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Logging</h2>
+
+        <p>Python</p>
+        <div class="pre">from flask import Flask
+app = Flask(__name__)
+app.logger.setLevel(logging.DEBUG)
+...
+@app.route('/warning')
+def warning():
+    <span class="red-bg">app.logger.warning('This is a warning message')</span>
+    return "warning"</div>
+        <p></p>
+        <p>Java</p>
+        <div class="pre">public class main{
+    static Logger logger = LogManager.getLogger("main");
+    
+    public static void main(String[] args) {
+        <span class="red-bg">logger.debug("Hello this is a debug message");</span>
+        <span class="red-bg">logger.info("Hello this is an info message");</span>
+    }
+}</div>
+
+        <aside class="notes">
+            <ul>
+                <li>Here are some simple code snippets in Python and Java to show typical generation of logging information. Each language usually has some packages providing logging functionality. Just make sure to configure the logging package to redirect the output to StdOut and StdErr.</li>
+            </ul>
+        </aside>
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Docker EE Logging</h2>
+
+        <ul>
+            <li>Logs come from three sources:</li>
+            <li>
+                <ul>
+                    <li><span class='keyword'>container runtime</span>: system-level</li>
+                    <li><span class='keyword'>kubelet</span>: system-level</li>
+                    <li><span class='keyword'>containers</span>: STDOUT &amp; STDERR</li>
+                </ul>
+            </li>
+            <li>Globally configured by <code>/etc/docker/daemon.json</code>:
+                <pre class="large">{
+    "log-driver": "journald",
+    "log-level": "debug",
+    "log-opts": {
+        "tag":"{{.ImageName}}/{{.Name}}/{{.ID}}"
+    }
+}</pre>
+            </li>
+            <li>Override for containers with <code>--log-opt</code></li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>On any node of a UCP cluster we have a container runtime and Kubernetes kubelet running.</li>
+                <li>These two system processes generate logs that, if systemd is installed, write to journald.</li>
+                <li>But there not only is the container runtime and kubelet running on the host machine, but so are all infrastructure and application containers or pods. Like any host process, these processes generate logs. The logs generated by these processes are the raw information ingested by any centralized logging platform.</li>
+                <li>daemon.json defines the driver, log level, and any driver-specific options to be used for the daemon logs, and by default all container logs. Logging options and drivers can be overridden at the container level on a case-by-case basis.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Centralized Logging - ELK Stack</h2>
+
+        <div class="row">
+            <div class="col-7">
+                <img src="src/modules/ddev/logging-and-error-handling/images/centralized-logging-kibana.png" alt="">
+            </div>
+            <div class="col-5">
+                <div class="pre">version: "3"
+services:
+    <span class="red-bg">elasticsearch:</span>
+        image: elasticsearch:2
+
+    <span class="red-bg">logstash:</span>
+        image: logstash
+        command: |
+        -e '
+            input {...}
+            filter {...}
+            output {...}'
+
+        ports:
+        - "12201:12201/udp"
+
+    <span class="red-bg">kibana:</span>
+        image: kibana:4
+        ports:
+            - "5601:5601"
+        environment:
+            ELASTICSEARCH_URL: http://elasticsearch:9200</div>
+            </div>
+        </div>
+
+        <aside class="notes">
+            <ul>
+                <li>One of the possibilities on how to centrally collect and process logging information is the use of the so called ELK stack (Elasticsearch, Logstash and Kibana).</li>
+                <li>We are showing a typical Docker stack file used to run an ELK stack on Docker Swarm. For simplicity we have omitted the details of the `command` for Logstash.</li>
+                <li>As seen in the previous slide, we can configure each Docker engine or each individual container to send (container) logging information to Logstash</li>
+                <li>Image: https://blog.greg.lu/src/modules/ddev/logging-and-error-handling/images/crash_course_into_open_source_monitoring_tools/centralized-logging-kibana.png</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Error Handling</h2>
+
+        <ul>
+            <li>Fail fast!</li>
+            <li>Provide <span class="keyword">good</span> quality error messages
+                <ul>
+                    <li>reason for failure</li>
+                    <li>app / service specific unique ID</li>
+                    <li>stack trace</li>
+                </ul>
+            </li>
+            <li>Use defensive coding style</li>
+            <li>Sometimes stale results are better than no results</li>
+            <li>Implement health endpoint</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>Always code such as that a component fails fast if certain essential conditions are not met. One way of doing so is by coding against contracts and validating them first thing in a request. A failing request is better than a request that produces inaccurate results due to an error that occurred.</li>
+                <li>If the application fails it is important to provide a helpful error message as logging information prior to terminating the application (if possible). The quality and completeness of the error message can be very decisive in whether or not the root cause of the error can be found at all and that it can be found quickly.</li>
+                <li>If your component depends on another (external) component then always assume that this other component may return an error or not respond at all. Implement a retry mechanism where appropriate to give the other component a chance to recover. If the component does not recover after a certain number of retries then depending on the importance of the other component's data or action fail or provide degraded experience by e.g. delivering stale data instead.</li>
+                <li>As mentioned, sometimes it is better to deliver some stale data that had been cached previously than to fail or deliver no data at all if the component responsible for producing the data is unavailable.</li>
+                <li>To make your containerized software component a good citizen in a Docker EE cluster implement a health endpoint e.g. as a REST endpoint for your component. This endpoint can then be used by Docker to decide whether or not your component should be killed and replaced by a fresh instance.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/ddev/logging-and-error-handling/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Logging &amp; Error Handling</h2>
+        <p>Work through the exercises</p>
+        <ul>
+            <li>Logging</li>
+            <li>Error Handling</li>
+        </ul> 
+        <p>in the Docker for Enterprise Developers Exercises book.</p>
+    </section> 
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Discussion</h2>
+ 
+        <ul>
+            <li>What additional logging information should your application provide after containerization?</li>
+            <li>Questions?</li>
+        </ul>
+ 
+        <aside class='notes'>
+            <ul>
+                <li>Remember that an orchestrated application consists of many interacting components distributed flexibly across a collection of potentially heterogeneous hosts. How will someone looking at the logs know what host your container was running on? How will they know what other components that container tried to interact with?</li>
+                <li>Including container ID in log messages is a good start; hopefully (!) ops has system level logs recording what containers ran on what hosts, so host identity can be reconstructed for each log message. Container ID is available in containers as their default hostname.</li>
+                <li>Including this container ID in inter-container communications might be worthwhile too, so other containers can log those communication attempts (otherwise the specific container that request was routed to will be obfuscated by VIP-based service discovery).</li>
+            </ul>     
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Configure logging drivers: <a href="http://dockr.ly/2gSFMdS">http://dockr.ly/2gSFMdS</a></li>
+            <li>Kubernetes Logging Architecture: <a href="http://bit.ly/2veExYy">http://bit.ly/2veExYy</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about logging and error handling</li>
+            </ul>
+            
+        </aside>
+    </section>
+</section>
+<section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/dops/healthcheck/images/icon_lecture.png" class="slide_icon" alt="icon">Application Health &amp; Readiness Checks</h2>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Discussion: Is your application healthy?</h2>
+
+        <p>How do you determine if an application is healthy or not? What are some ways a process can become unhealthy without exiting?</p>
+
+        <aside class='notes'>
+            <ul>
+                <li>Health detection hint: remember the /_ping endpoint on UCP. One way to probe application health is for the application itself to provide a means of querying some internal logic, like an endpoint.</li>
+                <li>Another health detection strategy may not rely on the application logic at all: system level actions like attempting to connect to a port or socket, or monitoring resource usage can indicate health.</li>
+                <li>Unhealthy processes that may not crash:
+                    <ul>
+                        <li>Missing a critical external component because the external component is either down or unreachable (ie an api that can't reach its database)</li>
+                        <li>Misconfiguration (bad environment variables provided, auth token not validating...)</li>
+                        <li>Unacceptably slow performance</li>
+                        <li>(many more - encourage the class to come up with some)</li>
+                    </ul>
+                </li>
+                <li>Remember that your orchestrator doesn't have any automatic insight into the health of your processes; by default, Swarm and Kubernetes can only reschedule exited containers. But there are many ways for processes to become unhealthy without exiting; we need to write healthchecks in order to allow our orchestrators to detect these unhealthy states.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2> 
+
+        <p>By the end of this module, learners will be able to:</p>
+
+        <ul>
+            <li>Describe the steps of a generic health check protocol</li>
+            <li>Configure Swarm and Kubernetes to kill unhealthy containers, and configure Kubernetes to remove unready pods from load balancing</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Health Check Protocols</h2>
+
+        <p>Monitoring application health requires:</p>
+        <ul>
+            <li><span class='keyword'>Action</span> to check health</li>
+            <li><span class='keyword'>Frequency</span> of checks</li>
+            <li><span class='keyword'>Timeout</span> per check</li>
+            <li><span class='keyword'>Number</span> of checks</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>A generic health checking protocol appropriate for a wide range of circumstances is to define an operation that assesses health at regular intervals, a frequency with which to assess health, and mark a subject unhealthy if it fails that test too many times in a row.</li>
+                <li>We also need to specify a timeout, after which we assume an unresponsive application has failed the current check.</li>
+            </ul>
+        </aside>
+
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Health Check Protocol - Healthy</h2>
+        <img src="src/modules/dops/healthcheck/images/lifecycle.png" title="Health Check">
+        <aside class="notes">
+            <ul>
+                <li>In this image we can see the lifecycle of a service for which we have defined a health check. The service at one point in time reports a failure in the health check twice in a row but then recovers. If we have defined that we want to probe at least 3 times until we mark our application unhealthy, this particular service instance is not terminated since it recovers after the second failed health check.</li>
+            </ul>
+        </aside>
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Health Check Protocol - Unhealthy</h2>
+        <img src="src/modules/dops/healthcheck/images/lifecycle-unhealthy.png" title="Health Check">
+        <aside class="notes">
+            <ul>
+                <li>In this example the application does not recover, and after the 3rd health check failure it is marked unhealthy.</li>
+                <li>As always Docker does that in a friendly way and first sends a SIGTERM signal to the container to give the service the opportunity to shut down gracefully. After 10 seonds the SIGKILL signal is sent and the container is killed.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Healthcheck: Swarm Service Container</h2>
+        <ul>
+            <li>Dockerfile<br>
+                <pre class="large">HEALTHCHECK CMD curl --fail http://localhost:5000/health || exit 1</pre>
+            </li>
+            <li>Docker Compose File<br>
+                <pre class="large">
+healthcheck:
+    interval: 10s
+    timeout: 2s
+    retries: 3
+    start-time: 30s</pre>
+            </li>
+        </ul>
+        <aside class="notes">
+            <ul>
+                <li>Docker exposes the parameters of our generic health check protocol in the Docker compose syntax, and also allows us to specify a delay after container start-up before we begin checking health, in order to avoid failures due to transient start-up procedures.</li>
+                <li>Developers best know how to assess the health of their containers. They can include this knowledge directly in their Dockerfiles describing the image to be used for a service via the HEALTHCHECK Dockerfile command. This command is executed in the container every health check interval; the check passes if this command returns 0, and fails if it returns anything else.</li>
+            </ul>
+        </aside>
+    </section>
+        
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Healthcheck: Kube Liveness Probe</h2>
+
+        <p>Kube yaml:</p>
+        <div class="pre large">kind: Pod
+...
+spec:
+  containers:
+  - name: demo
+    image: ...
+    <span class="red-bg">livenessProbe:</span>
+      periodSeconds: 10
+      timeoutSeconds: 2
+      failureThreshold: 3
+      initialDelaySeconds: 30
+      successThreshold: 1
+      exec:
+        command:
+        - cat
+        - /tmp/healthy
+    ...</div>
+
+    <aside class='notes'>
+        <ul>
+            <li>The equivalent for a container in a Kubernetes pod looks like this; there are exactly synonymous keys between the two orchestrators.</li>
+            <li>If a container becomes unhealthy, Kube will kill and restart it within its pod.</li>
+            <li>Kubernetes also provides a success threshold, which demands a certain number of consecutive successes before the failure count is reset.</li>
+            <li>In the Kube case, it is the local kubelet restarting the pod, rather than the swarm scheduler.</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Alternate Liveness Probes</h2>
+
+        <ul>
+            <li>HTTP Request: success if 200 &lt;= response &lt; 400</li>
+            <li>TCP socket: success if connection succeeds on specified port</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>In addition to running a script, Kube can assess health by hitting an HTTP endpoint, or by attempting a TCP socket connection.</li>
+            </ul>
+        </aside>
+
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Kubernetes Readiness Probe</h2>
+
+        <ul>
+            <li>Defined under <code>readinessProbe</code></li>
+            <li>Same syntax as <code>livenessProbe</code></li>
+            <li>No service traffic to pods w/ an unready container</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>In addition to application health, Kubernetes provides a second, parallel API to check for readiness.</li>
+                <li>Readiness checks allow us to signal Kubernetes that a container is temporarily not available. In such cases, we don’t want to kill the application, but we don’t want to send it requests either</li>
+                <li>Works and is defined the exact same way.</li>
+                <li>If a container is marked as unready, Kube services won't send that container's pod any traffic.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/dops/healthcheck/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Health Checks</h2>
+        <p>Work through the 'Health Checks' exercise in your exercise book.</p>
+    </section> 
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Healthchecks in Dockerfiles: <a href='https://dockr.ly/2Su62tl'>https://dockr.ly/2Su62tl</a></li>
+            <li>Healthchecks in Compose files: <a href='https://dockr.ly/2yH2cVo'>https://dockr.ly/2yH2cVo</a></li>
+            <li>Kube Liveness and Readiness Probes: <a href='https://bit.ly/2mauMH1'>https://bit.ly/2mauMH1</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about health checks</li>
+            </ul>
+            
+        </aside>
+    </section>
+</section><section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/secrets/images/icon_lecture.png" class="slide_icon" alt="icon">Secrets</h2>
+        <aside class="notes">
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Use secrets in Swarm and Kubernetes</li>
+            <li>Manage and mock secrets across environments</li>
+            <li>Identify the encryption strategies used to protect secrets throughout their lifecycle</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Distributing Secrets</h2>
+
+        <ul>
+            <li>Apps need sensitive data like access tokens, ssh keys etc</li>
+            <li>How to securely store and distribute secrets across a cluster?</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>What if one of our containers needs some secure information provisioned to it, like access tokens, ssh keys or anything else we want to strictly control access to?</li>
+                <li>A container or pod could be scheduled at any arbitrary node governed by our orchestrator. The manager consensus is going to need to have a secure registry of secret information, and a mechanism to make those secrets available to only the containers that need them, at container runtime.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Secret Requirements</h2>
+
+        <ul>
+            <li>Encrypted at rest</li>
+            <li>Encrypted in transit</li>
+            <li>Accessible only to intended containers</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>In order to handle secrets properly, at least three things need to happen.</li>
+                <li>Secrets must be available somewhere on demand. For Swarm they must be on disk in the manager consensus. For Kubernetes they are stored in etcd. However, we don't want them stored in plain text, or readable in any way directly from here after they have been created.</li>
+                <li>Secrets must never be transmitted in plain text; they ought to be encrypted over the wire on their way to the containers that need them.</li>
+                <li>Secrets should only be avilable to the containers they are associated with; not to all containers on the host, and not somewhere on the host's disk that will be accessible after the container is destroyed.</li>
+            </ul>
+        </aside>
+
+    </section>    
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Secrets Workflow 1: Creation &amp; Storage</h2>
+
+        <div class='col-6'>
+            <img src='src/modules/ddev/secrets/images/secret_arch1.png'></img>
+        </div>
+
+        <div class='col-6'>
+            <ul>
+                <li>
+                    <span class='keyword'>Swarm:</span>
+                    <ul>
+                        <li>Stored in state db</li>
+                        <li>Automatically encrypted at rest</li>
+                    </ul>
+                </li>
+                <li>
+                    <span class='keyword'>Kubernetes:</span>
+                    <ul>
+                        <li>Stored in etcd</li>
+                        <li>Must configure encryption: <a href='http://bit.ly/2GCoPwE'>http://bit.ly/2GCoPwE</a></li>
+                    </ul>
+                </li>   
+            </ul>
+        </div>
+
+        <aside class='notes'>
+            <ul>
+                <li>Secrets are stored in the cluster state database of both Swarm and Kubernetes.</li>
+                <li>Swarm automatically encrypts this database with no config; Kube can be configured to do the same.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Secrets Workflow 2: Distribution</h2>
+
+        <div class="row">
+            <div class='col-6'>
+                <img src='src/modules/ddev/secrets/images/secret_arch2.png'></img>
+            </div>
+
+            <div class='col-6'>
+                <ul>
+                    <li>
+                        <span class='keyword'>Swarm:</span>
+                        <ul>
+                            <li>Default mutual TLS</li>
+                            <li>Associated with services</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class='keyword'>Kubernetes:</span>
+                        <ul>
+                            <li>TLS optional</li>
+                            <li>Associated with pods or deployments</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class='keyword'>Both:</span>
+                        <ul>
+                            <li><span class="keyword">Least Privilege</span>: secrets available only exactly where needed</li>
+                            <li><span class="keyword">Deleted</span> along with container</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    
+        <aside class='notes'>
+            <ul>
+                <li>Secrets are associated with all the containers in a service in Swarm, or all the replicas in a deployment in Kubernetes.</li>
+                <li>Swarm imposes mutual TLS by default, which provides encryption for secrets in transit from the manager consensus to the destination worker and container; this must be configured for a Kube deployment.</li>
+                <li>In either orchestrator, secrets will only be available to the containers that mount them (the task containers in swarm, and the individual containers in a kube pod that mount the secret).</li>
+                <li>Upon receipt, both orchestrators store unencrypted secrets in a tmpfs filesystem which is deleted when the container is deleted; secrets never remain on disk on a worker node.</li>
+                <li>On windows, a volume mount is used in lieu of tmpfs.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+
+        <h2>Secrets Workflow 3: Secret Usage</h2>
+
+        <img src='src/modules/ddev/secrets/images/secret_arch3.png'></img>
+
+        <aside class='notes'>
+            <ul>
+                <li>At this point, the secret is just sitting unencrypted in the correct containers' filesystems, available to be used at will by any process running in that container.</li>
+                <li>Note that this also means orchestrator-managed secrets are backwards compatible with preexisting services; containers and code don't have to be aware of the secrets mechanism - they just have to read an unencrypted file sitting on their disk.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Secrets in Development</h2>
+
+        <p>Swarm: Service</p>
+        <div class="pre">docker service create --name foo \
+    <span class="green-bg">--secret source=DB_PASSWORD_V1,target=DB_PASSWORD</span> \
+    <span class="red-bg">--env DB_PASSWORD_FILE=/run/secrets/DB_PASSWORD</span> \
+    &lt;IMAGE_NAME&gt;</div>
+        <p>Development: Container</p>
+        <div class="pre">docker container run --name foo \
+    <span class="green-bg">-v ./dev-secrets/DEV_DB_PASSWORD:/app/my-secrets/DB_PASSWORD</span> \
+    <span class="red-bg">-e DB_PASSWORD_FILE=/app/my-secrets/DB_PASSWORD</span> \
+    ...
+    &lt;IMAGE_NAME&gt;</div>
+        <p>Code (Node JS)</p>
+        <div class="pre">var fs = require('fs');
+var db_password = fs.readFileSync(<span class="red-bg">process.env.DB_PASSWORD_FILE</span>, 'utf8');
+...</div>
+
+        <aside class='notes'>
+            <ul>
+                <li>Most often developers do not run their local dev environment in Swarm Mode and thus cannot run services and use secrets, or can't they?</li>
+                <li>It is actually pretty simple to circumvent that limitation by using environment variables</li>
+                <li>We can volume mount development secrets into any target folder inside the container, either at the usual location "/run/secrets" or any other reasonable place. We can then inform the code running in the container where it has to look for the secret.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/ddev/secrets/images/icon_task.png" class="slide_icon" alt="icon">Secrets</h2>
+        <p>Work through the 'Secrets' exercise in the Docker for Enterprise Developers Exercises book.</p>
+    </section> 
+
+    <section data-background="#445d6e" class="blue_bg">
+         <h2>Discussion</h2>
+ 
+         <ul>
+             <li>Secrets are one way to inject config into a container. What are some others, and when should each be used?</li>
+             <li>Questions?</li>
+         </ul>
+ 
+         <aside class='notes'>
+             <ul>
+                <li>Environment variables in service declarations. Most popular wrong(ish) use of secrets is to inject non-sensitive config into containers. Better to inject this as environment variables via the compose file, so that config is captured in version control.</li>
+                <li>External databases. Things like kv stores, hashivaults or databases are more appropriate for injecting dynamic config into a container - things that need to be determined at arbitrary times after container startup. Remeber, secrets are static at runtime; changing a secret requires a rolling update to the whole service.</li>
+             </ul>
+             
+         </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Manage sensitive data with Docker secrets: <a href="http://dockr.ly/2vUNbuH">http://dockr.ly/2vUNbuH</a></li>
+            <li>Docker secret reference: <a href="http://dockr.ly/2iSsNJC">http://dockr.ly/2iSsNJC</a></li>
+            <li>Introducing Docker secrets management: <a href="http://dockr.ly/2k7zwzE">http://dockr.ly/2k7zwzE</a></li>
+            <li>Securing the AtSea app with Docker secrets: <a href="http://dockr.ly/2wx5MyV">http://dockr.ly/2wx5MyV</a></li>
+            <li>Manage secrets: <a href="https://dockr.ly/2HmznE3">https://dockr.ly/2HmznE3</a></li>
+            <li>Kubernetes Secrets: <a href="http://bit.ly/2C6hMZF">http://bit.ly/2C6hMZF</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about secrets</li>
+            </ul>
+        </aside>
+    </section>
+</section><section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/config-management/images/icon_lecture.png" class="slide_icon" alt="icon">Configuration Management</h2>
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>List a few places in a containerized enterprise application to put configuration information</li>
+            <li>Categorize the configuration data type usually used in enterprise applications</li>
+            <li>Explain and justify where to put sensitive configuration data</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Where should my config live?</h2>
+
+        <ul>
+            <li>Base image</li>
+            <li>Derived image</li>
+            <li>Stack or Object YAML files</li>
+            <li>parameter file in image</li>
+            <li>parameter file mounted externally</li>
+            <li>entrypoint script</li>
+            <li>external service</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>In a typical application stack there are tens or even hundreds of properties to configure in a variety of places.</li>
+                <li>We quickly encounter the problem: where should these configurations live?</li>
+                <li>Should they be hard-coded into an image? If so, which image?</li>
+                <li>Should they be part of a stack.yaml or when using Kubernetes of an object YAML file?</li>
+                <li>Should they be passed in via parameter files? In the image or mounted?</li>
+                <li>Should they be defined in secrets and environment variables provided at startup?</li>
+                <li>Should they be extracted from external services like a Hashicorp vault or consul kv store at runtime?</li>
+            </ul>
+        </aside>
+
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Configuration Buckets</h2>
+
+        <img src='src/modules/ddev/config-management/images/config-hierarchy.png'></img>
+
+        <aside class='notes'>
+            <ul>
+                <li>One strategy for arranging configuration in the DRYest possible way is by leveraging a hierarchy of images, where config is defined as far to the left in this diagram as makes sense.</li>
+                <li>Operations teams will typically provide enterprise-grade base images. These are images that capture company-wide config and standards at the lowest level, and ops standards for general purpose tools and frameworks, like java and tomcat in the figure.</li>
+                <li>The developer's job starts after inheriting these standard base images; many config concerns then rest on which environment the application is meant to run in.</li>
+                <li>In the figure, we start with an image for our application logic; only completely general configuration should be imbued in this image, along with the application itself.</li>
+                <li>This release image can then be inherited by other images which include static config for different environments. This could include custom entrypoint scripts per environment, or mocks of things like secrets for example.</li>
+                <li>Config that needs to be established dynamically at startup can be supplied in the stack or Kubernetes deployment file describing the application; this may include dynamic environment variables or things like rotating secrets that can't be anticipated at image build time.</li>
+                <li>Finally, config that needs to be configured while the application is running needs to be done in the container. An example of this is service discovery if relying on an external kv store like consul.</li>
+                <li>As we look to the left in this diagram, we find images that are highly flexible since they include very few components or configurations; as we move to the right, images are less flexible but more portable and more secure, since they have everything they need baked in or provided by config files.</li>
+            </ul>
+        </aside>
+
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Enterprise Base Image</h2>
+
+        <div class="row">
+            <div class="col-6">
+                <ul>
+                    <li>Provided by Ops (CaaS)</li>
+                    <li>Start with Official Image</li>
+                    <li>Add company wide Tools &amp; Utilities</li>
+                    <li>Push to DTR</li>
+                    <li>Scan image --> zero vulnerabilities</li>
+                    <li><span class='keyword'>Mind Image Size!</span></li>
+                </ul>
+            </div>
+            <div class="col-6" align="center">
+                <img src="src/modules/ddev/config-management/images/enterprise-base-image.png" alt=""></img>
+            </div>
+        </div>
+
+        <div class="pre large">FROM <span class="red-bg">centos:7</span>
+RUN yum -y --noplugins install bzip2 tar sudo curl net-tools</div>
+        <div style="height:50px;"></div>
+
+        <aside class="notes">
+            <ul>
+                <li>Typical enterprise conventions are which Linux distro and version to use in a container as well as a set of common tools and utilities that should be available and used everywhere.</li>
+                <li>Note: these conventions are most appropriate during the lift and shift phase where legacy applications are containerized throughout the enterprise. Later on, when new applications are built it might be appropriate to have a choice of enterprise base images and not just the canonical one.</li>
+                <li>Operations then pushes these images to DTR where they are scanned for vulnerabilities. Ops should work on the images until it has zero (critical) vulnerabilities.</li>
+                <li>Once the images are available on DTR this enables company wide self-service by all developer teams (caas).</li>
+                <li>As always: Mind the image size of this base image. It is used company wide!</li>
+            </ul>
+        </aside>
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Application Base Image</h2>
+
+        <div class="row">
+            <div class="col-6">
+                <ul>
+                    <li>Define as <code>Dockerfile</code></li>
+                    <li>Start with Enterprise Base Image</li>
+                    <li>Add App Type specific Tools &amp; Utilities</li>
+                    <li><span class='keyword'>Mind Image Size!</span></li>
+                </ul>
+            </div>
+
+            <div class="col-6" align="center">
+                <img src="src/modules/ddev/config-management/images/application-base-image.png" alt=""></img>
+            </div>
+        </div>
+        
+        <div class="pre large">FROM &lt;DTR_FQDN&gt;/&lt;ORG_Name&gt;/enterprise-base:1.5
+<span class="red-bg">COPY files/dynatrace-agent-6.1.0.7880-unix.jar /opt/dynatrace/</span>
+...</div>
+
+        <aside class="notes">
+            <ul>
+                <li>Here we start with one of the available enterprise base images. Then we add the specific tools and libraries required for a certain category of applications, say Java applications versus .NET applications.</li>
+                <li>As in the previous diagram, there may even be a hierarchy of application base images.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Release Image</h2>
+
+        <div class="row">
+            <div class="col-6">
+                <ul>
+                    <li>Define as <code>Dockerfile</code></li>
+                    <li>Start with Application Base Image</li>
+                    <li>Add Application Artifacts</li>
+                    <li>Add <span class='keyword'>environment-agnostic</span> config</li>
+                    <li><span class='keyword'>Mind Image Size!</span></li>
+                </ul>
+            </div>
+            <div class="col-6" align="center">
+                <img src="src/modules/ddev/config-management/images/release-image.png" alt=""></img>
+            </div>
+        </div>
+
+        <div class="pre large">FROM &lt;DTR_FQDN&gt;/&lt;ORG_Name&gt;/app-base:2.2
+<span class="red-bg">COPY files/MY_APP_1.3.1-M24_1.war /opt/jboss/standalone/deployments/</span>
+...</div>
+
+        <aside class="notes">
+            <ul>
+                <li>Everything specific to a release image is usually specified in a Dockerfile.</li>
+                <li>Release images start from a curated application base image and add the application artifacts.</li>
+                <li>The code snippet shows an example on what this could look like. This sample assumes that the artifacts have been generated in a previous step e.g. on the host.</li>
+                <li>This is the appropriate level to bake in any config that won't change as the application moves through environments</li>
+            </ul>
+        </aside>
+    </section>
+    
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Environment Image</h2>
+        <div class="row">
+            <div class="col-6">
+                <ul>
+                    <li>Define as <code>Dockerfile</code></li>
+                    <li>Start with Release Image</li>
+                    <li>Add <span class='keyword'>environment-specific</span> config</li>
+                    <li><span class='keyword'>Mind Image Size!</span></li>
+                    <li>Could alternatively mount config at runtime</li>
+                </ul>
+            </div>
+            <div class="col-6" align="center">
+                <img src="src/modules/ddev/config-management/images/environment-image.png" alt=""></img>
+            </div>
+        </div>
+
+        <aside class='notes'>
+            <ul>
+                <li>Once we get down to the level of environment-specific configuration, we have a couple of options: either make an image per environment with its static but environment-specific config baked in, or if possible mount it in at runtime.</li>
+                <li>Baking the environment config into an env image is most portable and guaranteed to work the same everywhere, but mounting config in at runtime provides greater flexibility and a smaller number of images to maintain.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Dynamic config: Startup</h2>
+
+        <ul>
+            <li>Config defined at startup</li>
+            <li>provided in stack or object YAML files</li>
+            <li>
+                <ul>
+                    <li>environment variables</li>
+                    <li>Docker EE-managed secrets</li>
+                    <li>Volume mounts</li>
+                </ul>
+            </li>
+            <li>or defined in <code>entrypoint.sh</code></li>
+            <li>
+                <ul>
+                    <li>Hashicorp Vault-managed secret</li>
+                    <li>
+<div class="pre large">$ curl -H "X-Vault-Token: f3b09679-3001-009d-2b80-9c306ab81aa6" -X GET \
+    https://vlt.example.com:8200/v1/secret/db</div>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>The next tier of config is things that need to be dynamically defined at startup, and so can't be baked into the image.</li>
+                <li>These are typically objects like volumes, secrets and dynamic environment variables, all of which can be provided via your docker-compose.yml for Docker Swarm or object YAML files such as deployment for Kubernetes.</li>
+                <li>Also can provide an entrypoint script that probes things once the container has started, like extracting a hashivault secret.</li>
+            </ul>
+        </aside>
+
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Dynamic config: Runtime</h2>
+
+        <ul>
+            <li>Config to be adjusted in-flight</li>
+            <li>example: Consul KV service discovery</li>
+            <li>
+<div class="pre large">$ consul-template -consul consul.example.com:6124 \
+    -template "/tmp/nginx.ctmpl:/var/nginx/nginx.conf:service nginx restart"</div>
+            </li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>The final config tier is config that must be determined by the application in situ, at runtime.</li>
+                <li>For example, if service discovery is being backed by an external kv store, that will have to be probed dynamically.</li>
+            </ul>
+        </aside>
+
+    </section>
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/ddev/config-management/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Configuration Management</h2>
+        <p>Work through the 'Configuration Management' exercise in the Docker for Enterprise Developers Exercises book.</p>
+    </section> 
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Discussion</h2>
+ 
+        <ul>
+            <li>What are some pitfalls of configuration mismanagement?</li>
+            <li>Questions?</li>
+        </ul>
+ 
+        <aside class='notes'>
+            <ul>
+                <li>Push config too far into the base images, and you hurt reusability; you'll need many different images, each capturing different configurations.</li>
+                <li>Remember that upstream images are meant to be shared widely - secret information should never be in an image. Sounds obvious but people ignore this all the time...</li>
+                <li>Push too much config downstream into the docker-compose or entrypoint scripts, and your applications may become fragile with respect to misconfiguration. As more critical config is pushed into things external to the image, any testing done on your apps is testing the external configuration as much as the image itself, and if someone changes or misconfigures all that config you exposed to them in the compose file, they invalidate those previously-passing tests.</li>
+            </ul>             
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Store configuration data using Docker configs: <a href="http://dockr.ly/2wTjFrv">http://dockr.ly/2wTjFrv</a></li>
+            <li>Kubernetes Configuration Management with Containers: <a href="https://bit.ly/2PdKtPI">https://bit.ly/2PdKtPI</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about config management</li>
+            </ul>
+            
+        </aside>
+    </section>
+</section>
+<section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/cicd-intro/images/icon_lecture.png" class="slide_icon" alt="icon">Development Pipeline overview</h2>
+
+        <aside class='notes'>
+            <ul>
+                <li>Instructor: for the remainder of the course, we'll focus on setting up a development pipeline similar to what's discussed here; this will focus on automated builds and tests, backed by UCP and DTR. More stringent features like scanning and content trust, as well as sophisticated routing and scheduling, we leave for production clusters, and our Operations course.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Explain what container-as-a-service means in the context of a typical enterprise using DDC</li>
+            <li>Sketch a diagram containing all essential elements of a Docker development pipeline</li>
+            <li>List a handful of important differences between a traditional and a containerized CI/CD pipeline</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Traditional CI/CD</h2>
+
+        <ul>
+            <li>Push code to a repo</li>
+            <li>CI/CD manager pulls code through tests in multiple environments</li>
+            <li>Code (automatically?) deployed to production when passing</li>
+        </ul>
+
+        <p>But what does this look like with <span class='keyword'>containers and images</span>?</p>
+
+        <aside class='notes'>
+            <ul>
+                <li>Traditional CI/CD ingests code as it is pushed into a testing pipeline, and maybe pushes it to production if all tests pass.</li>
+                <li>want to do the exact same thing when developing containerized code</li>
+                <li>what are the special concerns that images introduce to this, and how does Docker EE help?</li>
+            </ul>
+        </aside>
+
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Containers in CI/CD</h2>
+
+        <ul>
+            <li>Images are full stack, not code alone</li>
+            <li>Must check for dependency vulnerabilities</li>
+            <li>Must ensure provenance</li>
+            <li>UCP Clusters must reflect pipeline environments</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>Key difference is that we aren't just shipping code; the whole environment will be included</li>
+                <li>Must include a testing step that probes the full stack for vulnerabilities</li>
+                <li>Must ensure integrity and provenance of images as they move across a network</li>
+                <li>UCP clusters will need to be scoped to reflect pipeline environments, ie don't want a testing deployment to schedule a container on a production node</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>A Docker Pipeline</h2>
+
+        <img src='src/modules/ddev/cicd-intro/images/generic-pipeline.png'></img>
+
+        <aside class='notes'>
+            <ul>
+                <li>Life starts the exact same way: write your code, push it to version control, and your build manager pulls it into a build server. In a Dockerized world, your code also includes the Dockerfile needed to build your image, and perhaps a compose.yml or object YAML (for Kubernetes) file to define how you want it to run as a service.</li>
+                <li>Ops can provide developers with approved base images to start from; this way, developers know they're starting from somewhere that is approved and compliant with company standards.</li>
+                <li>When a CI/CD step pushes to DTR, it should sign the image with Docker Content Trust. Then on subsequent pulls, the consumer is guaranteed to have the image they expected (much like checksums or signing from generic software distribution systems)</li>
+                <li>When your image first lands in DTR, DTR can scan its components for vulnerabilities, and then promote it to a new repository for consumption by the testing part of your pipeline</li>
+                <li>Each testing environment can have its own UCP that runs tests on the images, and signs and pushes them when they pass; this step can be repeated an arbitrary number of times, for different environments</li>
+                <li>When everything looks good, the image can be pulled down into production.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Pipeline Alternatives</h2>
+
+        <ul>
+            <li>Dev Cluster</li>
+            <li>Build-serverless pipeline</li>
+            <li>DTR Webhooks</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>The diagram on the last slide is a simple but feature-complete example of a Dockerized CI/CD pipeline, but there are a few common variations:</li>
+                <li>It's not uncommon to see a simpler dev pipeline like the first half of the previous diagram, responsible for building, pushing and testing images, but to have this decoupled from production so that things like strict content trust and security scanning can be deferred to a different environment.</li>
+                <li>It's no longer necessary to have separate UCPs to restrict deployments between pipeline stages; UCP RBAC now extends to nodes, so different pipeline stages can be restricted to using particular nodes allocated to them, all as part of the same UCP.</li>
+                <li>There's nothing Docker-intrinsic about the build server; developers could build their own images and push them directly to DTR to kick off the pipeline if a simpler system is desired.</li>
+                <li>DTR offers a collection of webhooks that allow it to send JSON payloads to external applications when things like image pushes, promotions or scans happen in DTR.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Deployment Phase</h2>
+
+        <ul>
+            <li>All familiar deployment strategies possible</li>
+            <li>Need to think about how load balancing works on a swarm (external and internal)</li>
+            <li>Consider routing meshes (L4 vs L7)</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>At deploy time, all the familiar strategies like canary, blue/green, rolling, and more are possible, but some thought needs to go into cluster configuration and load balancing.</li>
+                <li>Key consideration is the mesh strategy used. L4 meshes consume a given port for every node in the deployment cluster, so may need separate clusters for ex blue / green, or launch blue and green on separate ports.</li>
+                <li>Alternatively, could route traffic with the L7 mesh, basing routing on HTTP header.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Containers as a Service</h2>
+
+        <ul>
+            <li>(Dev)ops teams can provide <span class='keyword'>base images</span></li>
+            <li>Typically contain OS, middleware, enterprise credentials</li>
+            <li>Developers use these as starting point</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>Another useful subtlty is the notion of containers as a service</li>
+                <li>in this model, devops teams bake all the basic stuff - os, enterprise specific tooling, credentials etc - into a lightweight, single-layer base image provided to developers through DTR</li>
+                <li>Developers then use this image as their base when developing, providing them with a basic environment pre-vetted by operations to be compliant with all company standards.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Dockerized CI/CD Reference Architecture: <a href='http://dockr.ly/2tETN0V'>http://dockr.ly/2tETN0V</a></li>
+            <li>Docker EE Best Practices Reference Architecture: <a href='http://dockr.ly/2ohLad6'>http://dockr.ly/2ohLad6</a></li>
+            <li>Docker Reference Architecture: Development Pipeline Best Practices Using Docker EE <a href="http://dockr.ly/2tETN0V">http://dockr.ly/2tETN0V</a></li>
+        </ul>
+    </section>
+</section><section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/ucp-intro/images/icon_lecture.png" class="slide_icon" alt="icon">Universal Control Plane</h2>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Install and uninstall a highly available UCP cluster</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Docker Enterprise Edition</h2>
+
+        <ul>
+            <li>Security compliance tooling</li>
+            <li>Containerized CI/CD</li>
+            <li>Secure image distribution</li>
+            <li>Role based access control</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>So far, everything we've studied can be achieved with Docker's community edition product - the basic container runtime with orchestrators on top.</li>
+                <li>But large scale enterprises have additional concerns we haven't addressed yet.</li>
+                <li>Enterprise requires every step of the build-ship-run software supply chain needs security assurances and control mechanisms. Docker Enterprise Edition seeks to provide this.</li>
+            </ul>
+        </aside>
+
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Docker EE Architecture</h2>
+            
+        <img src="src/modules/ddev/ucp-intro/images/ddc-architecture.png" alt="UCP architecture"></img>
+
+        <aside class="notes">
+            <ul>
+                <li>Docker EE consists of the two products UCP and DTR.</li>
+                <li>UCP transparently supports three orchestration engines: classic swarm, SwarmKit and Kubernetes.</li>
+                <li>The UI of UCP provides a central location from which operators can manage all application payload no matter how it is deployed, e.g. using Kubernetes or Docker SwarmKit.</li>
+                <li>UCP is a swarm application and all its parts are containerized. We distinguish between manager and worker nodes.</li>
+                <li>UCP leverages the swarm to install and configure a Kubernetes cluster. UCP managers are at the same time Kubernetes master nodes. As a consequence, if UCP is configured with 3 or 5 managers in high available mode then automatically Kubernetes is highly available.</li>
+                <li>UCP worker nodes are also Kubernetes (worker) nodes.</li>
+                <li>We also have DTR with its image scanning and storage capabilities, as well as content trust and image promotion and mirroring.</li>
+                <li>An administrator can manage Docker EE either through the UCP and DTR UI or via command line from their own laptop using so called client bundles to configure their workstation for secure access of the cluster.</li>
+            </ul>
+        </aside>
+    </section>
+        
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>UCP is a Swarm</h2>
+        <ul>
+            <li>UCP sits on top of a Swarm</li>
+            <li>Automatically create Kubernetes Cluster</li>
+            <li>Adds UI, RBAC, registry integration...</li>
+            <li>Start with one UCP manager == Swarm manager leader</li>
+            <li>New UCP nodes joined exactly as new Swarm nodes joined</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>UCP is essentially a UI and some enterprise features sitting on top of a Swarm; the core of UCP is really just a Swarm.</li>
+                <li>The first UCP node you installed initiated a Swarm as its manager / leader; subsequent UCP nodes were joined exactly as you'd join a Swarm.</li>
+                <li>UCP also automatically configures a Kubernetes cluster using swarm as the deployment vehicle. Swarm manager nodes become Kubernetes masters and Swarm worker node are Kubernetes cluster nodes</li>
+                <li>Worker nodes can be configured to run swarm only, Kubernetes only or mixed payload. The latter is not recommended in production or critical environments.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Choose your Orchestration Engine</h2>
+
+        <ul>
+            <li>Swarm</li>
+            <li>Kubernetes (containerized and running on top of the Swarm)</li>
+            <li>Classic Swarm (legacy only)</li>
+        </ul>
+
+        <aside class="notes">
+            <ul>
+                <li>Docker EE provides you with the choice of 3 orchestrators: Swarm, Kubernetes, and legacy support for classic swarm</li>
+                <li>Docker EE proxies the underlying API of each orchestrator, giving you access to all of the capabilities of each orchestrator along with the benefits of Docker EE, like role-based access control and Docker Content Trust.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/ddev/ucp-intro/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Installing UCP</h2>
+        <p>Work through the 'Installing UCP' exercise in the Docker for Enterprise Developers Exercises book.</p>
+    </section> 
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>UCP architecture: <a href="https://dockr.ly/2qTOgTb">https://dockr.ly/2qTOgTb</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about UCP</li>
+            </ul>
+            
+        </aside>
+    </section>
+</section><section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/dtr-intro/images/icon_lecture.png" class="slide_icon" alt="icon">Docker Trusted Registry</h2>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Install a highly available DTR</li>
+            <li>Configure a UCP node so it trusts DTR</li>
+            <li>Push an arbitrary Docker image to a DTR repository</li>
+            <li>Uninstall DTR</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Secure Software Supply Chain</h2>
+        <ul>
+            <li>Image Creation</li>
+            <li>Image Distribution</li>
+            <li>Container Execution</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>Enterprise customers need end-to-end solutions for the entire softare supply chain, from creation to distribution to execution - but there are many challenges at each step. Universal Control Plane only really deals with the last one.</li>
+                <li>How can devops teams make images that are secure and standards-compliant? Beyond best practices for creating enterprise-grade images, we need a way to audit our images for security vulnerabilities that an attacker could exploit, and we need a way to integrate the image creation process into our existing CI/CD systems, so that those images can be QAed in the same way we test any new software.</li>
+                <li>Once we've made a really rock-solid image, how do we distribute it in a way that is secure against man-in-the-middle attacks? If an attacker can inject malicious code during a `docker pull`, all our effort to make a solid image will have been for nothing.</li>
+                <li>Docker Trusted Registry is the Docker native solution for the image creation and distribution steps of the software supply chain.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>DTR Key Features</h2>
+        <ul>
+            <li>
+                Image Creation:
+                <ul>
+                    <li>Image Security Scanning</li>
+                    <li>Repository Automation</li>
+                    <li>Image Promotion</li>
+                </ul>
+            </li>
+            <li>
+                Image Distribution:
+                <ul>
+                    <li>Content Trust / Notary</li>
+                    <li>Content Cache</li>
+                </ul>
+            </li>
+            <li>
+                Image Storage:
+                <ul>
+                    <li>Pluggable Storage Drivers</li>
+                </ul>
+            </li>           
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>DTR secures and automates the image creation step of the software supply chain via image scanning - the ability to scan each layer of each image for components, and check those components for known vulnerabilities against a consistently updated database. In addition, DTR provides a rich set of webhooks triggered on repository creation, updates, deletion and securtiy scanning events that allow the image production process to be integrated into your existing CI/CD pipeline.</li>
+                <li>Automatic or manual image promotion from one repo to another including optional tag re-assignment as well as image mirroring accross DTR clusters.</li>
+                <li>DTR secures image distribution by integrating Notary and Content Trust, a system of signed metadata that counters several man-in-the-middle attacks on software downloads.</li>
+                <li>Finally, in addition to serving enterprise security needs, DTR reduces image storage and distribution friction by providing options for remote caching and configurable image storage.</li>
+            </ul>
+        </aside>
+    </section>  
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Pushing Images to DTR</h2>
+        <ul>
+            <li>Configure your Docker engine to trust DTR<br>
+                <div class="pre large">$ sudo curl -k https://&lt;DTR_FQDN&gt;/ca \
+    -o /etc/pki/ca-trust/source/anchors/&lt;DTR_FQDN&gt;.crt
+$ sudo update-ca-trust
+$ sudo /bin/systemctl restart docker.service</div>
+            </li>
+            <li>Login to DTR:<br><div class="pre large">$ docker login &lt;DTR_FQDN&gt;</div></li>
+            <li>Tag your images with:<br><div class="pre large">&lt;DTR_FQDN&gt;/&lt;Org Name&gt;/&lt;Image Name&gt;:&lt;Tag&gt;</div></li>
+            <li>Push image</li>
+        </ul>
+        <p><strong>Note:</strong> <code>&lt;Image Name&gt;</code> and <code>&lt;Repository Name&gt;</code> are equivalent.</p>
+        <aside class="notes">
+            <ul>
+                <li>Since DTR uses TLS for all communications we need to configure our Docker engine to trust DTR. For this we download the CA from DTR, update our local certificates store and restart the Docker daemon.</li>
+                <li>Then we need to login to DTR using the DTR FQDN to identify the target DTR</li>
+                <li>Then we have to tag our images correctly, including the DTR FQDN</li>
+                <li>Once this is all done we can push our images to DTR the same way as we would do to say Docker Store.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/ddev/dtr-intro/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Installing DTR</h2>
+        <p>Work through the 'Installing Docker Trusted Registry' exercise in the Docker for Enterprise Developers Exercises book.</p>
+    </section> 
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>DTR overview: <a href="https://dockr.ly/2F84rkN">https://dockr.ly/2F84rkN</a></li>
+            <li>Troubleshoot DTR: <a href="https://dockr.ly/2JhT78m">https://dockr.ly/2JhT78m</a></li>
+            <li>Integrate with multiple registries: <a href="https://dockr.ly/2HqBzX7">https://dockr.ly/2HqBzX7</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about DTR</li>
+            </ul>
+            
+        </aside>
+    </section>
+</section><section data-background="#445d6e" class="gray_bg">
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/dops/dtr-repo-automation/images/icon_lecture.png" class="slide_icon" alt="icon">Repository Automation</h2>
+
+        <aside class='notes'>
+            <ul>
+                <li>Current software development practice automates many aspects of the process of moving software from development, through CI/CD, and into production; DTR provides features to support this pipeline, both internally to the registry, and externally in connection with other applications.</li>
+            </ul>
+        </aside>
+
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Discussion: Software Automation</h2>
+
+        <p>What automation do you currently use in your software development cycle? How will that connect with Docker?</p>
+
+        <aside class='notes'>
+            <ul>
+                <li>Typical software automation:
+                    <ul>
+                        <li>Build server (Jenkins)</li>
+                        <li>Automated testing</li>
+                        <li>Status and notification management (issues / tags / alerts automatically triggered as actions are needed)</li>
+                        <li>Automatic (ie continuous) deployment</li>
+                    </ul>
+                </li>
+                <li>Any software automation currently in use is going to need some way to interact with UCP and DTR, at least in terms of knowing when to push and pull from DTR, and being able to tag things as they move through the dev and test cycle. These are the concerns repo automation tools address.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2> 
+
+        <p>By the end of this module, learners will be able to:</p>
+
+        <ul>
+            <li>Automatically retag an image from one DTR repo to another</li>
+            <li>Define webhooks triggered by DTR events</li>
+            <li>Integrate DTR into a CI/CD chain using the above</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Automation Tools</h2>
+
+        <ul>
+            <li>Image Promotion &amp; Mirroring</li>
+            <li>Webhooks</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>DTR provides two tools for automating aspects of the production side of the software supply chain: image promotion, image mirroring and webhooks.</li>
+                <li>Repositories in DTR can be created explicitly or automatically upon pushing a first image.</li>
+                <li>Image promotion allows an image in a particular repository to be promoted, or copied, to another repository when a certain set of conditions is fulfilled. This can be used to reflect the journey of an image through a CI/CD pipeline, or any other workflow where a piece of software is promoted through a series of steps.</li>
+                <li>Image mirroring allows an image in a particular repository to be mirrored to another repository in another DTR cluster when a certain set of conditions is fulfilled analogous to image promotion.</li>
+                <li>Webhooks allow users to automatically send information about repository events to any arbitrary external endpoint. In this way, DTR can initiate actions from third-party apps, such as unit testing when an image is created or email or pager alerts when security vulnerabilities are identified.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Image Promotion</h2>
+
+        <img src='src/modules/dops/dtr-repo-automation/images/image-promotion-basic.png'></img>
+
+        <aside class='notes'>
+            <ul>
+                <li>Image promotion allows images to migrate from one repository in DTR to another.</li>
+                <li>Images can be retagged on promotion, and any number of promotion rules can be defined to reflect the image pipeline being defined.</li>
+            </ul>
+        </aside>
+
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Image Promotion Policies</h2>
+
+        <ul>
+            <li>Manual or automatic</li>
+            <li>Automatic promotion can be triggered on:</li>
+            <li>
+                <ul>
+                    <li>Tag name</li>
+                    <li>Package name</li>
+                    <li>Minor / Major / Critical / All vulnerabilities</li>
+                    <li>Component licenses</li>
+                </ul>
+            </li>
+            <li>No limit to number of policies that can be defined </li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>Image promotion can be triggered by hand, or automatically based on a set of rules.</li>
+                <li>Automatic promotion criteria can make decisions based on the tag applied to the image in the source repository; the packages or licenses found in a scan of the image; or on the number and severity of vulnerabilities detected in an image.</li>
+                <li>Note that there is no limit to the number of promotion policies that can be defined; any web or chain of promotions can be created to construct the desired pipeline.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Image Mirroring</h2>
+        <img src='src/modules/dops/dtr-repo-automation/images/image-mirroring.png'></img>
+        <aside class="notes">
+            <ul>
+                <li>Image mirroring is essentially the same idea as image promotion, but allows for the promotion of image from one DTR deployment to another.</li>
+                <li>Registries each have their own access control</li>
+                <li>Mirroring is bi-directional. It can be done via “push” or “pull”</li>
+                <li>Policies can be used to automatically push to remote DTRs</li>
+                <li>Similar to image promotion images can be retagged on mirroring, and any number of mirroring rules can be defined.</li>
+                <li>This could be interesting for companies that want to have separate DTR clusters for say development and production where the production cluster is protected behind firewalls and no one except operations has access to the corresponding UCP cluster.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Image Mirroring - Push based</h2>
+        <img src='src/modules/dops/dtr-repo-automation/images/image-mirroring-push.png'></img>
+        <ul>
+            <li>Image pushed to DTR 1</li>
+            <li>If policies met => push to DTR 2</li>
+            <li>AuthN &amp; AuthZ managed by each DTR</li>
+            <li>Signing &amp; scan data not (yet) preserved</li>
+        </ul>
+        <aside class="notes">
+            <ul>
+                <li>In step 1 an image is pushed to DTR 1, e.g. by a CI server
+                <li>In step 2, if all configured policies are met (e.g. no vulnerabilities) the image is pushed to DTR 2</li>
+                <li>Authentication and Authorization are managed by each individual DTR</li>
+                <li>Note: At this time signing and scan data is not (yet) preserved when mirroring an image. That is an image has to be signed again at the destination if required.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Image Mirroring - Pull based</h2>
+        <img src='src/modules/dops/dtr-repo-automation/images/image-mirroring-pull.png'></img>
+        <ul>
+            <li>Image pushed to DTR 1</li>
+            <li>DTR 2 polls DTR 1 for updates</li>
+            <li>New image found => pull to DTR 2</li>
+            <li>Combine with Promotion Policies</li>
+        </ul>
+        <aside class="notes">
+            <ul>
+                <li>In step 1 image is pushed to DTR 1, e.g. by a CI server
+                <li>In step 2 DTR 2 polls DTR 1 at specified intervals to check for updates</li>
+                <li>Finally in step 3 if new images are found, image is pulled to DTR 2</li>
+                <li>Can work in conjunction with Promotion Policies, e.g. promote from repo 1 to repo 2 in DTR 1 via policies and then mirror repo 2 with DTR 2</li>
+                <li>At this time no UI support for this feature. Only via API (but that's OK since everything should be automated anyways in a CI/CD pipeline).</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Webhooks</h2>
+
+        <p>POST message with JSON payload, triggered on:</p>
+        <ul>
+            <li>Tag push or delete</li>
+            <li>Manifest push or delete</li>
+            <li>Security scan failed</li>
+            <li>Security scan complete</li>
+        </ul>
+        <p>Defined per repository.</p>
+
+        <aside class='notes'>
+            <ul>
+                <li>As is typical for any webhooks service, triggers result in some relevant JSON getting POST'ed to whatever URL you'd like.</li>
+                <li>Events that can trigger a webhook are pushes, pulls and security scans at the repo level, and create / update / destroy operations at the namespace level.</li>
+                <li>Each of these can be defined on a per-repository basis.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Webhook Payload</h2>
+
+        <ul>
+            <li>
+                Webhook payloads always come in a wrapper:<br>
+                <pre class="large">{
+  "type": "...",
+  "createdAt": "2012-04-23T18:25:43.511Z",
+  <span class="red-bg">"contents": {...}</span>
+}</pre>
+            </li>
+            <li>The <code>contents</code> key depends on the event type; see <a href='https://dockr.ly/2JjcAW7'>https://dockr.ly/2JjcAW7</a> for the full spec.</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>All webhooks come in the same wrapper, with a type, timestamp, and payload that depends on the type of event. See the docs for all the details on the contents of each type.</li>
+            </ul>
+        </aside>
+
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Auditing DTR Actions</h2>
+
+        <ul>
+            <li>Per repo: Activity monitor (ex: push, delete, scan, promote)</li>
+            <li>All DTR: Job log (ex: scanning, garbage collection, webhooks, pruning)</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>Now that we've configured DTR to take a number of actions on its own, we'll want to be able to assay what events have taken place, both at the repository level and the full registry level</li>
+                <li>DTR offers repository activity logs that capture image create/update/destroy events, as well as things like scans and promotions and repository configuration updates.</li>
+                <li>At the full registry level, the jobs log presents logs from automated jobs undertaken by DTR, such as garbage collection, image pruning, webhook triggers, and security scans.</li>
+            </ul>
+        </aside>
+
+    </section>    
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/dops/dtr-repo-automation/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Repository Automation</h2>
+        <p>Work through the 'Image Promotion &amp; Webhooks' exercise in your exercise book.</p>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Discussion</h2>
+
+        <ul>
+            <li>What are the pros and cons of promoting images in a single DTR, versus mirroring them across multiple DTRs?</li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>Single DTR: one pane of glass to manage everything; less EE infrastructure to manage and maintain; SSO possible with single DTR.</li>
+                <li>Multiple DTR: segmentation between teams or environments is easier to enforce and audit (compared to convoluted RBAC rules); better accommodates multi-datacenter deployments; may better reflect roles and ownership in an org with many verticals (imagine mirroring an image to different DTRs for different teams, who could then do whatever they want with it). Mirroring also supports having a completely isolated prod environment.</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Managing webhooks: <a href="https://dockr.ly/2JjcAW7">https://dockr.ly/2JjcAW7</a></li>
+            <li>Promotion policies overview: <a href="https://dockr.ly/2KarnDN">https://dockr.ly/2KarnDN</a></li>
+            <li>Image Promotions and Immutable Repos: <a href="http://bit.ly/2eEz7TH">http://bit.ly/2eEz7TH</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about repository automation</li>
+            </ul>
+            
+        </aside>
+    </section>
+
+</section>
+<section>
+    <section data-background="#445d6e" class="gray_bg">
+        <h2><img src="src/modules/ddev/build-server/images/icon_lecture.png" class="slide_icon" alt="icon">Build Server</h2>
+        <aside class="notes">
+            <ul>
+                <li>See here for a good step-by-step guide on how to use Jenkins in Docker build/push/run pipeline:  <a href="https://github.com/yongshin/leroy-jenkins">https://github.com/yongshin/leroy-jenkins</a>. This includes:</li>
+                <li>
+                    <ul>
+                        <li>Preparing Swarm node as build master node (using labels)</li>
+                        <li>Running Jenkins as Docker in Docker service in Swarm</li>
+                        <li>Configuring Jenkins and DTR for content trust (including delegation)</li>
+                        <li>Define Jenkins Job for: Building, tagging and pushing image</li>
+                        <li>Define Jenkins Job for: deploying the application</li>
+                    </ul> 
+                </li>
+                <li>Suggestions for improvements:</li>
+                <li>
+                    <ul>
+                        <li> Use Docker secrets to store Content Trust passphrases (currently they are part of the Jenkins Job scripts). Assign secrets to Jenkins service upon start.</li>
+                        <li>In Jenkins deploy job script: Automatically discover IF stack has already been deployed. If yes use 'docker stack update' otherwise use 'docker stack deploy'</li>
+                    </ul>
+                </li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Learning Objectives</h2>
+
+        <p>By the end of this module, learners will be able to:</p>
+        <ul>
+            <li>Combine Jenkins, DTR and GitHub to automatically build and push images upon code updates.</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Build Server</h2>
+
+        <p>Typical tasks of a CI server:</p>
+        <ul>
+            <li><span class="keyword">Building</span> images</li>
+            <li><span class="keyword">Testing</span> images</li>
+            <li><span class="keyword">Pushing</span> images</li>
+            <li><span class="keyword">Signing</span> images</li>
+            <li><span class="keyword">Promoting</span> images
+                <ul>
+                    <li>to other environments</li>
+                    <li>to other repositories</li>
+                </ul>
+            </li>
+            <li><span class="keyword">Provisioning</span> of infrastructure</li>
+            <li><span class="keyword">Notifying</span> team members upon success or failure</li>
+            <li><span class="keyword">Auditing</span> activity</li>
+        </ul>
+        <aside class="notes">
+            <ul>
+                <li>In a CI/CD pipeline the build server has a very central role. It is most often used as the central hub managing and coordinating all the activities that are part of a typical CI/CD process. Typical activities are:</li>
+                <li>
+                    <ul>
+                        <li>Building images: whenever a developer pushes code to the SCMS the CI server is triggered via a webhook to build a new version of the image(s) for this code.</li>
+                        <li>Testing images: if the build is successful then the CI server triggers a series of tests against the new image. These typically are unit- and/or integration tests.</li>
+                        <li>Pushing images: If the previous tests are successful the CI server pushes the image to the repository.</li>
+                        <li>Signing images: if the team uses content trust then the CI server also is responsible to sign the image (during the push operation) ob behalf of the developer or team.</li>
+                        <li>Promoting images to other environments: Once the image has been successfully pushed to the repo it can be automatically or manually promoted (=deployed) to other environments such as QA, test-system for load &amp; stress tests or end-to-end tests, etc.</li>
+                        <li>Promoting images to other repos: It might be desirable to have different repositories for the same image for e.g. development and production. A CI server can take on this function and trigger the promotion of an image to another repo via policies or gives the opportunity to manually trigger the same, e.g. by operations.</li>
+                        <li>Provisioning of infrastructure: The CI server can also be used to provision ad-hoc or ephmeral environments that can e.g. be used for testing. The CI server can also be used to scale existing swarms up or down.</li>
+                        <li>Notifying team members upon success or failure: The CI/CD pipeline consists of many steps. The CI server will abort the whole process if a step fails and notify the team members e.g. via Slack or eMail.</li>
+                        <li>Auditing: Deploying new versions of an application is a critical operation that often needs to be audited. The CI server keeps a perfect audit trail and gives us this functionality of tracability and repeatability for free. Every step is automated and the corresponding scripts are put under source control. Even if a manual intervention is required in the process, this intervention is typically a single click operation (such as "deploy specific version to production") and can also easily be audit trailed.</li>
+                    </ul>
+                </li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Build Servers</h2>
+        <p>CI servers often used on premise:</p>
+        <ul>
+            <li>Cloud Bees: Jenkins</li>
+            <li>Jetbrains: TeamCity</li>
+            <li>Atlassian: Bamboo</li>
+            <li>Microsoft: TeamFoundation server</li>
+        </ul>
+    </section>
+
+    <section data-background="#445d6e" class="gray_bg">
+        <h2>Build Server - UCP</h2>
+
+        <div class="row">
+            <div class="col-8">
+                <ul>
+                    <li>Run build master/agents as containers</li>
+                    <li>Mount Docker socket to build, sign and push images</li>
+                    <li>Use node RBAC to define Builder Swarm Segment</li>
+                </ul>
+                <img src="src/modules/ddev/build-server/images/build-server.png" alt="">
+            </div>
+            <div class="col-4">
+                <h3>Running TeamCity</h3>
+                <div class="pre">version: '3.1'
+services:
+  teamcity:
+    restart: unless-stopped
+    image: sashgorokhov/teamcity
+    ports:
+      - "0.0.0.0:8111:8111"
+    volumes:
+      - "/mnt/teamcity:/mnt/teamcity"
+  teamcity_agent:
+    restart: unless-stopped
+    image: sashgorokhov/teamcity-agent
+    environment:
+      SERVER_URL: teamcity:8111
+    volumes:
+      <span class="red-bg">- "/var/run/docker.sock:/var/run/docker.sock"</span></div>
+            </div>
+        </div>
+
+        <aside class="notes">
+            <ul>
+                <li>We run build master and agents as containers/services in the swarm.</li>
+                <li>Mount Docker socket into build master and agents such as that they are able to build, sign and push images.</li>
+                <li>We can leverage node RBAC in Docker EE Advanced Edition to segment a few nodes of the swarm as build master and agent nodes.</li>
+                <li>Alternatively (in Standard Edition) we can label nodes as "builder" and use restrictions when deploying build master and agents into the swarm (as services)</li>
+            </ul>
+        </aside>
+    </section>
+
+    <section data-background="#00a2a1" class="green_bg">
+        <h2><img src="src/modules/ddev/build-server/images/icon_task.png" class="slide_icon" alt="icon"> Exercise: Build Server</h2>
+        <p>Work through the 'Build Server' exercise in the Docker for Enterprise Developers Exercises book.</p>
+    </section> 
+
+     <section data-background="#445d6e" class="blue_bg">
+        <h2>Discussion</h2>
+ 
+        <ul>
+            <li>What are some features of DTR and UCP you'll want to integrate with your CI pipeline?</li>
+            <li>Questions?</li>
+        </ul>
+ 
+        <aside class='notes'>
+            <ul>
+                <li>Build server should sign an image with content trust on push</li>
+                <li>CI server should assess DTR security scan as part of testing</li>
+                <li>CI server should be prepared to accept webhooks from DTR in order to kick off actions</li>
+                <li>CD server will need to be integrated into UCP's RBAC in order to spin up containers</li>
+            </ul>     
+        </aside>
+    </section>
+
+    <section data-background="#445d6e" class="blue_bg">
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>Configure automated builds with Docker Hub: <a href="http://dockr.ly/2wjwo4Z">http://dockr.ly/2wjwo4Z</a></li>
+            <li>Configure automated builds with Bitbucket: <a href="http://dockr.ly/2xeTX30">http://dockr.ly/2xeTX30</a></li>
+            <li>DockerCon Video: Delivering Ebay's CI Solution with Apache Mesos and Docker: <a href="http://dockr.ly/2vWoBdR">http://dockr.ly/2vWoBdR</a></li>
+        </ul>
+
+        <aside class='notes'>
+            <ul>
+                <li>additional resources about build server</li>
+            </ul>
+            
+        </aside>
+    </section>
+</section>
+<section>
+    <section data-background="#1AAAF8" class="blue_bg">
+        <h2>Docker for Enterprise Developers</h2>
+
+        <p>Thanks for coming! Please take our feedback survey: <a href='https://bit.ly/2PXma8S'>https://bit.ly/2PXma8S</a></p>
+
+        <p>Get in touch: training@docker.com</p>
+        <a href='https://success.docker.com/training'>success.docker.com/training</a>
+
+        <aside class="notes">
+            <ul>
+                <li>Trainers, please fill out this survey to help us get feedback on how to better our courses: <a href='https://bit.ly/2HZgGCc'>https://bit.ly/2HZgGCc</a></li>
+                <li>Thank you!</li>
+            </ul>
+        </aside>
+    </section>
+</section><section data-background="#445d6e" class="blue_bg">
+  <h2>You're on your way to becoming Docker Certified!</h2>
+
+  <ul>
+    <li>Study up with our Study Guides at <a href='http://bit.ly/2yPzAdb'>http://bit.ly/2yPzAdb</a></li>
+    <li>Take it online 24 hours a day</li>
+    <li>Results delivered immediately</li>
+    <li>Benefits include:</li>
+        <ul>
+            <li>Digital certificate</li>
+            <li>Online verification</li>
+            <li>Private LinkedIn group</li>
+            <li>Exclusive events</li>
+        </ul>
+  </ul>
+
+  <h4 style="text-align:center;"><a href='http://success.docker.com/certification'>success.docker.com/certification</a></h4>
+
+  <aside class='notes'>
+    <ul>
+      <li>The first and only official Docker certification.</li>
+      <li>Learn more at success.docker.com/certification.</li>
+    </ul>
+  </aside>
+</section>
+
+            </div>
+        </div>
+
+        <script src="lib/js/head.min.js"></script>
+        <script src="js/reveal.js"></script>
+
+        <script>
+
+            // Full list of configuration options available at:
+            // https://github.com/hakimel/reveal.js#configuration
+            Reveal.initialize({
+                controls: true,
+                progress: true,
+                history: true,
+                center: true,
+
+                transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+                menu: {
+                    themes: false,
+                    transitions: false,
+                },
+
+                // Optional reveal.js plugins
+                dependencies: [
+                    { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+                    { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+                    { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+                    { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+                    { src: 'plugin/zoom-js/zoom.js', async: true },
+                    { src: 'plugin/notes/notes.js', async: true }
+                ]/*,
+
+                // uncomment this block to make left/right advance slide and up/down advance chapter.
+                keyboard: {
+                    39: 'next',
+                    37: 'prev',
+                    38: 'left',
+                    40: 'right'
+                }
+                */
+            });
+
+        </script>
+
+    </body>
+</html>

@@ -1,0 +1,172 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="instructor-demo-process-isolation">Instructor Demo: Process Isolation</h1>
+<p>In this demo, we&#39;ll illustrate:</p>
+<ul>
+<li>What containerized process IDs look like inside versus outside of a namespace</li>
+<li>How to impose resource limitations on CPU and memory consumption of a containerized process</li>
+</ul>
+<h2 id="exploring-the-pid-namespace">Exploring the PID Namespace</h2>
+<ol>
+<li><p>Start a simple container we can explore:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run -d --name pinger `
+    microsoft/nanoserver:latest powershell ping -t 8.8.8.8
+</code></pre>
+</li>
+<li><p>Launch a child process inside this container to display all the processes running inside it:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container exec pinger powershell Get-Process
+
+Handles  NPM(K)    PM(K)      WS(K)     CPU(s)     Id  SI ProcessName
+-------  ------    -----      -----     ------     --  -- -----------
+      0       5      944       4364       0.02   4812  65 CExecSvc
+      0       5      636       1872       0.02  14264  65 csrss
+      0       0        0          4                 0   0 Idle
+      0      18     3568      11296       0.25   5760  65 lsass
+      0       5      636       3084       0.03  13476  65 PING
+      0      38    43400      66500       1.72   9436  65 powershell
+      0      33    22788      44312       1.33  13184  65 powershell
+      0       9     1592       5756       0.13  12872  65 services
+      0       3      340       1144       0.02  15996   0 smss
+      0      15    12448      21192       5.98   4828  65 svchost
+      0      12     4996       9472       0.19   6412  65 svchost
+      0       8     1548       5788       0.06  11252  65 svchost
+      0      29     6000      16224       0.48  11308  65 svchost
+      0       9     1936       6428       0.06  13668  65 svchost
+      0      13     1756       6336       0.06  15040  65 svchost
+      0      15     9852      17896       0.42  15680  65 svchost
+      0       0      128        140     898.88      4   0 System
+      0       7      840       3916       0.02   8428  65 wininit
+</code></pre>
+<p>In Windows containers, a whole set of system processes need to run in order for the intended application process to be executed successfully. Just like a regular Windows process list, we see the root <code>Idle</code> process at PID 0, and the <code>System</code> process at PID 4.</p>
+<p>Another way to achieve a similar result is to use <code>container top</code>:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container top pinger
+
+Name                PID                 CPU                 Private Working Set
+smss.exe            15996               00:00:00.015        217.1kB
+csrss.exe           14264               00:00:00.015        397.3kB
+wininit.exe         8428                00:00:00.015        618.5kB
+services.exe        12872               00:00:00.125        1.372MB
+lsass.exe           5760                00:00:00.250        2.793MB
+svchost.exe         11252               00:00:00.062        1.176MB
+svchost.exe         15040               00:00:00.062        1.425MB
+svchost.exe         6412                00:00:00.187        3.715MB
+svchost.exe         4828                00:00:05.984        10.93MB
+svchost.exe         13668               00:00:00.062        1.692MB
+svchost.exe         11308               00:00:00.484        4.85MB
+svchost.exe         15680               00:00:00.421        8.266MB
+CExecSvc.exe        4812                00:00:00.015        757.8kB
+powershell.exe      13184               00:00:01.328        18.62MB
+PING.EXE            13476               00:00:00.031        487.4kB
+</code></pre>
+</li>
+<li><p>Run <code>Get-Process</code> directly on your host. The ping process is visible there, but so are all the other processes on this machine; the container&#39;s namespaces isolated what <code>Get-Process</code> returns when executed as a child process within the container.</p>
+</li>
+<li><p>List your containers to show that the <code>pinger</code> container is still running:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container ls
+</code></pre>
+<p>Kill the ping process by host PID, confirm with <code>Y</code> to stop the process, and show the container has stopped:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt;Stop-Process -Id [PID of ping]
+PS: node-0 Administrator&gt;docker container ls
+
+CONTAINER ID        IMAGE                  COMMAND                    CREATED             STATUS          PORTS
+         NAMES
+</code></pre>
+<p>Killing the ping process on the host also kills the container. Note using <code>Stop-Process</code> is just for demonstration purposes here; never stop containers this way.</p>
+</li>
+</ol>
+<h2 id="imposing-resource-limitations">Imposing Resource Limitations</h2>
+<ol>
+<li><p>Open the Task Manager, either through the search bar or by typing <code>taskmgr</code> in the command prompt.</p>
+</li>
+<li><p>Start a container designed to simulate cpu and memory load:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run -it training/winstress:ee2.1 powershell
+</code></pre>
+</li>
+<li><p>Execute a script inside your container to allocate memory as fast as possible:</p>
+<pre><code class="lang-powershell">PS C:\&gt; .\saturate-mem.ps1
+</code></pre>
+<p>You should see the <code>Memory</code> column on the Task Manager increase quickly, even turning red afterwhile. Then, this error message should be thrown (CTRL+c to break the loop):</p>
+<pre><code class="lang-powershell">Exception of type &#39;System.OutOfMemoryException&#39; was thrown.
+At C:\saturate-mem.ps1:2 char:37
++ ...  -lt 100000; $i++) { $mem_stress += (&quot;a&quot; * 1023MB) + (&quot;b&quot; * 1023MB) }
++                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (:) [], OutOfMemoryException
+    + FullyQualifiedErrorId : System.OutOfMemoryException
+</code></pre>
+<p>Note this may even disrupt your RDP connection to your VM - failing to constrain resource consumption can be catastrophic.</p>
+</li>
+<li><p><code>CTRL+C</code> to kill this memory-saturating process. Then, exit and remove the container to release the allocated memory:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt;docker container rm -f &lt;container ID&gt;
+</code></pre>
+<p>Immediately, the memory in the Task Manager should drop.</p>
+</li>
+<li><p>Now, let&#39;s start a container with a memory limit:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run `
+    -it -m 4096mb training/winstress:ee2.1 powershell
+</code></pre>
+</li>
+<li><p>Run the same script to generate memory pressure:</p>
+<pre><code class="lang-powershell">PS C:\&gt; .\saturate-mem.ps1
+</code></pre>
+<p>While the memory does increase in the Task Manager, allocations get cut off before the system memory is completely consumed. <code>CTRL+C</code> to kill the process, and exit the container again.</p>
+</li>
+<li><p>Remove this container.</p>
+<pre><code class="lang-powershell">PS: node-0 win-stress&gt;docker container rm -f &lt;container ID&gt;
+</code></pre>
+</li>
+<li><p>With the Task Manager still up and running, let&#39;s do the same thing but for processor consumption:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run -it training/winstress:ee2.1 powershell
+PS C:\&gt; .\saturate-cpu.ps1
+</code></pre>
+<p>You should see the CPU column of the Task Manager increase quickly and turn red.</p>
+</li>
+<li><p><code>CTRL+C</code> to kill this CPU-burning process, and <code>exit</code> the container. As soon as it exits, the CPU consumption percentage on the Task Manager should drop immediately.</p>
+</li>
+<li><p>Start another container, but this time with a CPU limit:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run `
+    -it --cpus=&quot;1&quot; training/winstress:ee2.1 powershell
+</code></pre>
+</li>
+<li><p>Execute the script to overload the CPUs:</p>
+<pre><code class="lang-powershell">PS C:\&gt; .\saturate-cpu.ps1
+</code></pre>
+<p>While you will see the CPU consumption on the Task Manager increase, it will not increase as dramatically as it did before, as it is being limited by Window&#39;s control groups.</p>
+</li>
+<li><p>Exit and remove this container.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this demo, we explored some of the most important technologies that make containerization possible: namespaces and control groups. The core message here is that containerized processes are just processes running on their host, isolated and constrained by these technologies. All the tools and management strategies you would use for conventional processes apply just as well for containerized processes.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

@@ -1,0 +1,180 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="end-to-end-tests">End-to-End Tests</h1>
+<p>In this exercise we are going to test our workshop sample application as a whole, end-to-end. The tests will run in their own container during execution.</p>
+<p>The project folder for this exercise is <code>~/ddev-labs/end-2-end-tests</code>.</p>
+<h2 id="writing-the-tests">Writing the Tests</h2>
+<ol>
+<li><p>Change the file <code>ui/src/index.html</code> by adding a <code>&lt;title&gt;</code> element to the <code>&lt;head&gt;</code>:</p>
+<pre><code class="lang-html">&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Cat of the Day&lt;/title&gt;
+    ...
+&lt;/head&gt;
+...
+</code></pre>
+<p>we need this element to write our sample test against.</p>
+</li>
+<li><p>Notice the folder <code>end-2-end/e2e</code>. It will contain everything for the test container.</p>
+</li>
+<li><p>Open the file <code>e2e/server.js</code>. It contains simple code to run an end-to-end test:</p>
+<pre><code class="lang-javascript">var webdriver = require(&#39;selenium-webdriver&#39;),
+    By = webdriver.By,
+    until = webdriver.until;
+
+console.log(&#39;Selenium driver initialized.&#39;);
+
+function test(){
+    console.log(&#39;Now running test&#39;);
+    var driver = new webdriver.Builder()
+        .forBrowser(&#39;chrome&#39;)
+        .usingServer(&#39;http://selenium:4444/wd/hub&#39;)
+        .build();
+    driver.get(&#39;http://ui:3000/pet&#39;);
+    driver.wait(until.titleIs(&#39;Cat of the Day&#39;), 1000);
+    driver.quit();
+}
+
+console.log(&#39;Now waiting for 3sec&#39;);
+setTimeout(test, 3000);
+</code></pre>
+<p><strong>Note:</strong> we&#39;re waiting for 3 seconds to give Selenium a chance to start up. This could be done in a more sophisticated way, e.g. by polling <code>http://selenium:4444/wd/hub</code> until we get a response.</p>
+<p>Also note that we&#39;re using service discovery provided by Docker and thus can access the UI with the URL <code>http://ui:3000/pet</code>.</p>
+</li>
+<li><p>Note there is also a file <code>e2e/package.json</code> since our tests are written in Node JS.</p>
+</li>
+<li><p>Add a <code>Dockerfile</code> to the &#39;e2e&#39; folder with this content:</p>
+<pre><code class="lang-dockerfile">FROM node:8.0.0-alpine
+RUN npm install selenium-webdriver
+WORKDIR /app
+COPY . .
+CMD npm start
+</code></pre>
+</li>
+<li><p>Create a file <code>end-2-end-tests/docker-compose-e2e.yml</code> (next to the other docker-compose files) with this content:</p>
+<pre><code class="lang-yaml">version: &#39;3.1&#39;
+
+services:
+  selenium:
+    image: selenium/standalone-chrome:3.4.0-dysprosium
+    volumes:
+    - /dev/shm:/dev/shm
+    networks:
+    - front-tier
+    ports:
+    - 4444:4444
+  e2e:
+    build: e2e
+    networks:
+    - front-tier
+    command: npm start
+
+networks:
+  front-tier:
+</code></pre>
+<p>Gist: <a href="http://bit.ly/2ARmSYP">http://bit.ly/2ARmSYP</a></p>
+<p>Why do we connect the services to the <code>front-tier</code> network?</p>
+</li>
+<li><p>Run the application:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/end-2-end-tests$ docker-compose up --build
+</code></pre>
+<p>and wait until the app is ready.</p>
+</li>
+<li><p>In another terminal window run the end-to-end tests:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/end-2-end-tests$ docker-compose \
+    -f docker-compose-e2e.yml up --build
+</code></pre>
+<p>you should see an output similar to this (shortened):</p>
+<pre><code class="lang-bash">...
+e2e_1       | npm info it worked if it ends with ok
+e2e_1       | npm info using npm@5.0.0
+e2e_1       | npm info using node@v8.0.0
+e2e_1       | npm info lifecycle e2etests@1.0.0~prestart: e2etests@1.0.0
+e2e_1       | npm info lifecycle e2etests@1.0.0~start: e2etests@1.0.0
+e2e_1       |
+e2e_1       | &gt; e2etests@1.0.0 start /app
+e2e_1       | &gt; node server.js
+e2e_1       |
+selenium_1  | 20:39:23.973 INFO - Selenium build info: version: &#39;3.4.0&#39;, revision: &#39;unknown&#39;
+selenium_1  | 20:39:23.973 INFO - Launching a standalone Selenium Server
+selenium_1  | 2017-07-10 20:39:23.996:INFO::main: Logging initialized @241ms to org.seleniumhq.jetty9.util.log.StdErrLog
+selenium_1  | 20:39:24.058 INFO - Driver provider org.openqa.selenium.ie.InternetExplorerDriver registration is skipped:
+selenium_1  |  registration capabilities Capabilities [{ensureCleanSession=true, browserName=internet explorer, version=, platform=WINDOWS}] does not match the current platform LINUX
+selenium_1  | 20:39:24.059 INFO - Driver provider org.openqa.selenium.edge.EdgeDriver registration is skipped:
+selenium_1  |  registration capabilities Capabilities [{browserName=MicrosoftEdge, version=, platform=WINDOWS}] does not match the current platform LINUX
+selenium_1  | 20:39:24.060 INFO - Driver class not found: com.opera.core.systems.OperaDriver
+selenium_1  | 20:39:24.060 INFO - Driver provider com.opera.core.systems.OperaDriver registration is skipped:
+selenium_1  | Unable to create new instances on this machine.
+selenium_1  | 20:39:24.060 INFO - Driver class not found: com.opera.core.systems.OperaDriver
+selenium_1  | 20:39:24.061 INFO - Driver provider com.opera.core.systems.OperaDriver is not registered
+selenium_1  | 20:39:24.062 INFO - Driver provider org.openqa.selenium.safari.SafariDriver registration is skipped:
+selenium_1  |  registration capabilities Capabilities [{browserName=safari, version=, platform=MAC}] does not match the current platform LINUX
+selenium_1  | 2017-07-10 20:39:24.099:INFO:osjs.Server:main: jetty-9.4.3.v20170317
+selenium_1  | 2017-07-10 20:39:24.136:INFO:osjsh.ContextHandler:main: Started o.s.j.s.ServletContextHandler@14acaea5{/,null,AVAILABLE}
+selenium_1  | 2017-07-10 20:39:24.156:INFO:osjs.AbstractConnector:main: Started ServerConnector@754ba872{HTTP/1.1,[http/1.1]}{0.0.0.0:4444}
+selenium_1  | 2017-07-10 20:39:24.157:INFO:osjs.Server:main: Started @402ms
+selenium_1  | 20:39:24.157 INFO - Selenium Server is up and running
+e2e_1       | Selenium driver initialized.
+e2e_1       | Now waiting for 3sec
+e2e_1       | Now running test
+selenium_1  | 20:39:27.338 INFO - SessionCleaner initialized with insideBrowserTimeout 0 and clientGoneTimeout 1800000 polling every 180000
+selenium_1  | 20:39:27.360 INFO - Executing: [new session: Capabilities [{browserName=chrome}]])
+selenium_1  | 20:39:27.379 INFO - Creating a new session for Capabilities [{browserName=chrome}]
+selenium_1  | Starting ChromeDriver 2.30.477691 (6ee44a7247c639c0703f291d320bdf05c1531b57) on port 9120
+selenium_1  | Only local connections are allowed.
+selenium_1  | 20:39:28.046 INFO - Detected dialect: OSS
+selenium_1  | 20:39:28.060 INFO - Done: [new session: Capabilities [{browserName=chrome}]]
+selenium_1  | 20:39:28.089 INFO - Executing: [get: http://ui:3000/pet])
+selenium_1  | 20:39:28.937 INFO - Done: [get: http://ui:3000/pet]
+selenium_1  | 20:39:28.942 INFO - Executing: [get title])
+selenium_1  | 20:39:28.952 INFO - Done: [get title]
+selenium_1  | 20:39:28.956 INFO - Executing: [delete session: 4c208b23-0724-4268-9077-2e889d67559f])
+selenium_1  | 20:39:29.026 INFO - Done: [delete session: 4c208b23-0724-4268-9077-2e889d67559f]
+e2e_1       | npm info lifecycle e2etests@1.0.0~poststart: e2etests@1.0.0
+e2e_1       | npm info ok
+end2endtests_e2e_1 exited with code 0
+</code></pre>
+</li>
+<li><p>Clean up when done; hit <code>CTRL+C</code> to stop the application and then:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/end-2-end-tests$ docker-compose down
+ubuntu@infra:~/ddev-labs/end-2-end-tests$ docker-compose \
+    -f docker-compose-e2e.yml down
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise you have implemented and tested the mechanics of an End-to-End test scenario. We were using <em>Selenium Web Driver</em> for Node JS to automate the tests. The tests itself are run through the Selenium standalone server listening at <code>0.0.0.0:4000/wd/hub</code> for incoming commands.</p>
+<p>From the container orchestration standpoint, this is similar to the the API tests we did in the last exercise, in that we stand up completely independent testing infrastructure, described as its own services in its own docker-compose file, to test interactions with our full application. In this case however, our application&#39;s docker-compose file can be closer to (or exactly) how we would define it in production - no public API port exposures, no mounted volumes, and no special execution environments for our application components; all that has been validated previously, and now we can test our full application with a totally independent testing stack.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

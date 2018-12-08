@@ -1,0 +1,235 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="service-discovery">Service Discovery</h1>
+<p>For true application portability, connections between containers need to be as portable as the container themselves. Therefore, the Docker Engine provides an on-board DNS service that allows traffic to be routed between application components by container or service name, without requiring any explicit service discovery in our application logic. Let&#39;s see this in action by creating a simple service that uses Redis to store a value. The service will access Redis via its service name.</p>
+<p>The project folder for this exercise is <code>~/ddev-labs/service-discovery</code>.</p>
+<h2 id="creating-an-application">Creating an Application</h2>
+<ol>
+<li><p>Open the file <code>server.py</code> from the project folder. It should have this content:</p>
+<pre><code class="lang-bash">from flask import Flask, request, jsonify
+from redis import Redis
+
+app = Flask(__name__)
+redis = Redis(&quot;redis&quot;)
+
+@app.route(&#39;/&#39;)
+def info():
+    return &quot;Demo for Service Discovery&quot;
+
+@app.route(&#39;/scores&#39;, methods=[&#39;POST&#39;])
+def score():
+    json = request.get_json()
+    redis.set(json[&#39;name&#39;], json[&#39;score&#39;])
+    return &#39;CREATED&#39;, 201
+
+@app.route(&#39;/scores/&lt;name&gt;&#39;, methods=[&#39;GET&#39;])
+def get_score(name):
+    value = redis.get(name);
+    if not value:
+        return &#39;NOT FOUND&#39;, 404
+    ret = { &#39;name&#39;: name, &#39;score&#39;: value }
+    return jsonify(ret)
+
+if __name__ == &#39;__main__&#39;:
+    app.run(port=3000, host=&quot;0.0.0.0&quot;)
+</code></pre>
+<p>Note how on line 5 we&#39;re using the (short) service name of the Redis service to define the Redis host in the statement <code>redis = Redis(&quot;redis&quot;)</code>. There is no need to use IP addresses or FQDNs to access Redis. This is Docker&#39;s <em>service discovery</em> in action.</p>
+<blockquote>
+<p><strong>Stop:</strong> How is the service name <code>redis</code> defined? It is defined in the <code>docker-compose.yml</code> file introduced further down.</p>
+</blockquote>
+</li>
+<li><p>There is also a file <code>requirements.txt</code> containing the list of dependencies needed by the Python app:</p>
+<pre><code class="lang-bash">flask
+redis
+</code></pre>
+</li>
+<li><p>Add the following instructions to the file <code>service-discovery/Dockerfile</code>:</p>
+<pre><code class="lang-dockerfile">FROM python:2.7-alpine
+RUN mkdir -p /app
+WORKDIR /app
+COPY requirements.txt /app/
+RUN pip install -r requirements.txt
+COPY . /app
+EXPOSE 3000
+CMD python server.py
+</code></pre>
+</li>
+<li><p>Also add the following content to <code>service-discovery/docker-compose.yml</code>:</p>
+<pre><code class="lang-yaml">version: &#39;3.1&#39;
+services:
+    app:
+        build: .
+        ports:
+            - 3000:3000
+        networks:
+            - back-tier
+    redis:
+        image: redis:latest
+        networks:
+            - back-tier
+
+networks:
+    back-tier:
+</code></pre>
+<p>Gist: <a href="http://bit.ly/2h4uAdy">http://bit.ly/2h4uAdy</a></p>
+<p>Note that the services are both connected to the <code>back-tier</code> network; recall that containers not plugged into the same network are firewalled from each other by default, as part of Docker&#39;s container networking model.</p>
+</li>
+<li><p>Run the application:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/service-discovery$ docker-compose up --build
+</code></pre>
+</li>
+<li><p>Use a <code>curl</code> to test the API. Open a second terminal window and execute:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl -H &quot;Content-Type: application/json&quot; \
+    -X POST -d &#39;{&quot;name&quot;: &quot;Joey&quot;, &quot;score&quot;: 6}&#39; localhost:3000/scores; echo
+</code></pre>
+</li>
+<li><p>Make sure the value was written:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl localhost:3000/scores/Joey
+</code></pre>
+<p>which should result in an answer like this:</p>
+<pre><code class="lang-json">{&#39;name&#39;: &#39;Joey&#39;, &#39;score&#39;: 6}
+</code></pre>
+</li>
+</ol>
+<h2 id="using-aliases-in-service-discovery">Using Aliases in Service Discovery</h2>
+<p>Sometimes we have to live with given FQDNs for services and are not free to choose a short name like in the above sample. In this case we can use aliases.</p>
+<ol>
+<li><p>Suppose our <code>redis</code> service had to be called <code>redis.example.com</code>. Rename the service as such in  the <code>docker-compose.yml</code> file and add a <code>links:</code> section to the <code>app</code> service to alias this name to the name <code>redis</code> used in our python server:</p>
+<pre><code class="lang-yaml">...
+app:
+    ...
+    links:
+        - &quot;redis.example.com:redis&quot;
+    ...
+redis.example.com:
+    image: redis:latest
+    ...
+</code></pre>
+</li>
+<li><p>Run and test the application as in the example above. This allows us to decouple the name of the service from how we refer to it in our application logic.</p>
+</li>
+</ol>
+<h2 id="network-partitioning">Network Partitioning</h2>
+<p>Docker&#39;s container network model is centered around software defined networks; regardless of underlying implementation details, Docker will always firewall containers on different Docker networks from each other.</p>
+<ol>
+<li><p>Ping your redis service from within your <code>app</code> service container:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ docker container exec &lt;app container id&gt; ping redis.example.com
+</code></pre>
+<p>The ping should proceed as normal.</p>
+</li>
+<li><p>Stop your application, and modify the <code>docker-compose.yml</code> file to connect your redis service to a different network:</p>
+<pre><code class="lang-yaml">...
+    redis.example.com:
+        image: redis:latest
+        networks:
+            - extra-net
+
+networks:
+    back-tier:
+    extra-net:
+</code></pre>
+</li>
+<li><p>Restart your application and attempt the same ping as above; it fails, since these services can no longer resolve each other&#39;s names and are firewalled from each other by Docker&#39;s network partitioning.</p>
+</li>
+<li><p>Try the <code>curl</code> commands from above to write and read data to the database; they also fail, for the same reason.</p>
+</li>
+</ol>
+<h2 id="kubernetes-and-service-discovery">Kubernetes and Service Discovery</h2>
+<p>Contrary to Docker Swarm, Kubernetes&#39; DNS works across the whole cluster. There are no default network partitions like in Swarm with its software defined networks. In Kubernetes one can use network policies to partition applications from each other.</p>
+<ol>
+<li><p>Open the file <code>kube.yaml</code> and analyze its content. Notice that an image has been provided for you for running the application:</p>
+<pre><code class="lang-yaml">...
+    spec:
+      containers:
+      - name: ui
+        image: training/ddev-service-discovery-kube:1.0
+        ports
+        - containerPort: 3000
+ ...
+</code></pre>
+</li>
+<li><p>Run the application in Minikube:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/service-discovery$ kubectl create -f kube.yaml
+</code></pre>
+<p>you should see this:</p>
+<pre><code class="lang-bash">namespace &quot;ddev&quot; created
+deployment &quot;redis&quot; created
+service &quot;redis&quot; created
+deployment &quot;app&quot; created
+service &quot;app&quot; created
+</code></pre>
+</li>
+<li><p>Get the IP of Minikube:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ export KUBE_IP=$(minikube ip)
+</code></pre>
+</li>
+<li><p>Get the public port on which the application is exposed:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ export APP_PORT=$(kubectl get -n ddev svc/app \
+    --template &#39;{{range .spec.ports}}{{.nodePort}}{{end}}&#39;)
+</code></pre>
+<p>Note, we&#39;re using Go template syntax above to extract the <code>nodePort</code> value form the <code>app</code> service meta data.</p>
+</li>
+<li><p>Echo both variables to be sure that the IP and the port are received correctly:</p>
+<pre><code>ubuntu@infra:~$ echo $KUBE_IP:$APP_PORT
+</code></pre></li>
+<li><p>Use <code>curl</code> to add some value to the application:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl -H &quot;Content-Type: application/json&quot; \
+    -X POST -d &#39;{&quot;name&quot;: &quot;Joey&quot;, &quot;score&quot;: 6}&#39; ${KUBE_IP}:${APP_PORT}/scores; echo
+
+CREATED
+</code></pre>
+</li>
+<li><p>Now double check that the value has been stored in Redis, again using <code>curl</code>:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl ${KUBE_IP}:${APP_PORT}/scores/Joey
+</code></pre>
+<p>which should result in this answer:</p>
+<pre><code class="lang-json">{
+  &quot;name&quot;: &quot;Joey&quot;,
+  &quot;score&quot;: &quot;6&quot;
+}
+</code></pre>
+</li>
+<li><p>Discuss with your peers how and why the Python application can access Redis when running in Kubernetes.</p>
+</li>
+<li><p>Clean up:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ kubectl delete namespace/ddev
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise we have seen how Docker provides out of the box service discovery for services running on the same network. In our case the Flask API could discover Redis simply by its service name <code>redis</code>. We also have shown how we can use aliases to use different, given (for example) FDQNs instead of the short service names.</p>
+<p>Furthermore, we have illustrated the basic behavior of Docker network partitioning; containers on different networks are automatically firewalled from each other, and cannot resolve container or service names for objects not connected to the same network. As such, when designing a containerized application it is crucial to record in your <code>docker-compose.yml</code> which services need to be connected to which networks. Done conservatively, this is a simple pattern to enhance the security of your containerized applications.</p>
+<p>Meanwhile, Kubernetes provides no such default network segmentation; Kube&#39;s networking model prioritizes flat, cluster-wide networks that resemble flat networks of VMs in order to make application networking when moving from VMs to containers as simple as possible. In order to impose network segmentation in Kubernetes, we need to choose a networking plugin that support the <code>NetworkPolicy</code> object.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

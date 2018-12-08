@@ -1,0 +1,176 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="edit-and-continue">Edit and Continue</h1>
+<p>As developers we seek a frictionless development process. The introduction of containers should make things smoother and not add additional friction. This lab shows you how to establish an <strong>edit and continue</strong> workflow when running code in a container.</p>
+<p>The project folder for this exercise is <code>~/ddev-labs/edit-and-continue</code>.</p>
+<h2 id="modifying-and-re-running-the-app">Modifying and re-running the app</h2>
+<ol>
+<li><p>Run the application, and curl the root path to get a greeting message:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ cd ~/ddev-labs/edit-and-continue
+ubuntu@infra:~/ddev-labs/edit-and-continue$ docker-compose up --build -d
+ubuntu@infra:~/ddev-labs/edit-and-continue$ curl localhost:3000
+
+Pets Demo Application
+</code></pre>
+</li>
+<li><p>Edit the <code>server.js</code> in the folder <code>ui/src</code> and change the message returned by the <code>/ [GET]</code> request:</p>
+<pre><code class="lang-javascript">app.get(&#39;/&#39;,function(req,res){
+    res.status(200).send(&#39;Pets Demo Application (changed...)&#39; + &#39;\n&#39;);
+});
+</code></pre>
+<p>Don&#39;t forget to save your change.</p>
+</li>
+<li><p><code>curl localhost:3000</code> again - of course you don&#39;t see your change, since we never re-built your container or application.</p>
+</li>
+<li><p>Stop the application with <code>docker-compose down</code>.</p>
+</li>
+<li><p>Re-build and run the application again:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/edit-and-continue$ docker-compose up --build -d
+</code></pre>
+</li>
+<li><p><code>curl localhost:3000</code> again, and now you can see your change to <code>server.js</code>.</p>
+</li>
+<li><p>Stop your application again with <code>docker-compose down</code>.</p>
+</li>
+</ol>
+<h2 id="mounting-source-code">Mounting source code</h2>
+<p>The above procedure to see changes made in the application is a bit tedious. If we always need to stop the container, build the new image and run the container after each change we waste a lot of time and create a lot of frustration. Luckily we can do better.</p>
+<ol>
+<li><p>Open the file <code>docker-compose.dev.yml</code> and note the <code>volumes:</code> entry for the <code>ui</code> service:</p>
+<pre><code class="lang-yaml">version: &#39;3.1&#39;
+services:
+    ...
+    ui:
+        build:
+            context: ui
+        image: ddev_ui
+        volumes:
+            - ./ui/src:/app/src
+        ports:
+            - &quot;3000:3000&quot;
+        networks:
+            - front-tier
+    ...
+</code></pre>
+<p>This stanza indicates you are mounting the folder <code>./ui/src</code> from our host to the target folder <code>/app/src</code> inside the ui container.</p>
+</li>
+<li><p>Run the application using this new modified Docker compose file:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/edit-and-continue$ docker-compose -f \
+    docker-compose.dev.yml up --build -d
+</code></pre>
+<p>Note how we can explicitly define which compose file to use with the <code>-f</code> parameter.</p>
+</li>
+<li><p><code>curl localhost:3000</code> again and make sure you can see the changed message.</p>
+</li>
+<li><p>Now change the greeting message in <code>server.js</code> again and save.</p>
+</li>
+<li><p><code>curl</code> again. Do you see the change? No. Why not?</p>
+</li>
+<li><p>Make sure that the change actually made it into the container:</p>
+<ol>
+<li>Open another terminal and exec into the <code>ui</code> container: <code>docker container exec -it &lt;ui container-id&gt; sh</code></li>
+<li>Show the content of the file: <code>cat /app/src/server.js</code></li>
+<li>Make sure the changes are there</li>
+<li>Type <code>exit</code> to exit the container</li>
+</ol>
+</li>
+<li><p>Stop the application again with <code>CTRL+C</code>.</p>
+</li>
+</ol>
+<h2 id="automatically-restart-the-application">Automatically restart the application</h2>
+<p>Apparently just mounting the source code into the container wasn&#39;t good enough. We also need to make sure that the application running inside the container monitors the filesystem for changes and restarts the application if any are discovered.</p>
+<ol>
+<li><p>Open the file <code>edit-and-continue/ui/Dockerfile.dev</code> and note that (compared to <code>Dockerfile</code>) we have added the following line just after the <code>FROM</code> statement: </p>
+<pre><code class="lang-bash">RUN npm install nodemon -g
+</code></pre>
+</li>
+<li><p>Compared to <code>Dockerfile</code> we have also changed the last line in the file to look like this:</p>
+<pre><code class="lang-bash">CMD nodemon src/server.js 0.0.0.0:3000
+</code></pre>
+<p>Instead of running the app using Node we&#39;re using <code>nodemon</code>. <em>If you&#39;re running this on a Windows machine,</em> please also add a <code>-L</code> flag after <code>nodemon</code> here, to get the desired behavior.</p>
+</li>
+<li><p>Modify the <code>docker-compose.dev.yml</code> file to use our new <code>Dockerfile.dev</code> to build the <code>ui</code> service:</p>
+<pre><code class="lang-yaml">version: &#39;3.1&#39;
+services:
+    ...
+    ui:
+        build:
+            context: ui
+            dockerfile: Dockerfile.dev
+        image: ddev_ui
+        volumes:
+            - ./ui/src:/app/src
+        ports:
+            - &quot;3000:3000&quot;
+        networks:
+            - front-tier
+    ...
+</code></pre>
+<p>Note the <code>dockerfile:</code> entry in the <code>build:</code> block of the <code>ui</code> service.</p>
+</li>
+<li><p>Build and run the application using the modified <code>Dockerfile.dev</code>; we&#39;ll run it in the foreground this time, to see some logging in real time:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/edit-and-continue$ docker-compose -f \
+    docker-compose.dev.yml up --build
+</code></pre>
+</li>
+<li><p>Now change the message in <code>server.js</code> again. As you save your changes you should observe output similar to the following in your terminal:</p>
+<pre><code class="lang-bash">ui_1   | [nodemon] restarting due to changes...
+ui_1   | [nodemon] starting `node src/server.js 0.0.0.0:3000`
+ui_1   | Listening at 0.0.0.0:3000
+</code></pre>
+<p>Nodemon has detected the changes and automatically restarted the node server.</p>
+</li>
+<li><p>Make sure you can see the changes without restarting the application via <code>curl localhost:3000</code>.</p>
+</li>
+</ol>
+<h2 id="cleaning-up">Cleaning up</h2>
+<p>Do not forget to clean up after yourself when you&#39;re done with the exercise.</p>
+<ol>
+<li><p><code>CTRL+C</code> in the terminal running the app in the foreground, and then use Docker compose to tidy up all other resources specified in the compose file:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/edit-and-continue$ docker-compose -f \
+    docker-compose.dev.yml down
+</code></pre>
+</li>
+</ol>
+<h2 id="optional-challenge">Optional Challenge</h2>
+<p>If you finish early and like to experiment, try to achieve similar edit-and-continue behavior in the following scenarios:</p>
+<ul>
+<li>Do a similar exercise for a static website consisting of a single file <code>index.html</code> with a simple greeting message. Use a simple web server to serve the page such as <a href="https://www.npmjs.com/package/http-server">http-server</a>. For this you don&#39;t need Docker compose and can directly run the (single) container using <code>docker container run...</code>.</li>
+<li>Do a similar exercise for a Python/Flex or a .NET Core web application.</li>
+</ul>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this lab we have learned how to use volume mapping together with an auto-start tool to achieve an <strong>edit and continue</strong> experience for an application running in a container. Without these techniques we would have to rebuild images and restart our containers (or applications) each time we modified our code.</p>
+<p>Note that this technique works out of the box with interpreted languages &amp; frameworks such as Node JS, Python, Ruby etc., or languages that compile just-in-time like ASP.NET Core. With languages like Java using Spring Boot a similar technique is also possible although a bit more involved. Please refer to the following link for additional details: <a href="https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-devtools.html">https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-devtools.html</a>.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

@@ -1,0 +1,126 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="plugins">Plugins</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Install, configure, and delete any Docker plugin</li>
+<li>Use the <code>vieux/sshfs</code> plugin to create ssh-mountable volumes that can be mounted into any container in your cluster</li>
+</ul>
+<h2 id="installing-a-plugin">Installing a Plugin</h2>
+<ol>
+<li><p>Plugins can be hosted on Docker Store or any other (private) repository. Let&#39;s start with Docker Store. Browse to <a href="https://store.docker.com">https://store.docker.com</a> and enter <code>vieux/sshfs</code> in the search box. The result should show you the plugin that we are going to work with.</p>
+</li>
+<li><p>Install the plugin into our Docker Engine:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker plugin install vieux/sshfs
+</code></pre>
+<p>The system should ask us for permission to use privileges. In the case of the <code>sshfs</code> plugin there are 4 privileges. Answer with <code>y</code>.</p>
+</li>
+<li><p>Once we have successfully installed some plugins we can use the <code>ls</code> command to see the status of each of the installed plugins. Execute:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker plugin ls
+</code></pre>
+</li>
+</ol>
+<h2 id="enabling-and-disabling-a-plugin">Enabling and Disabling a Plugin</h2>
+<ol>
+<li><p>Once a plugin is installed it is <code>enabled</code> by default. We can disable it using this command:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker plugin disable vieux/sshfs
+</code></pre>
+<p>only when a plugin is disabled can certain operations on it be executed.</p>
+</li>
+<li><p>The plugin can be (re-) enabled by using this command:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker plugin enable vieux/sshfs
+</code></pre>
+<p>Play with the above commands and notice how the status of the plugin changes when displaying it with <code>docker plugin ls</code>.</p>
+</li>
+</ol>
+<h2 id="inspecting-a-plugin">Inspecting a Plugin</h2>
+<ol>
+<li><p>We can also use the <code>inspect</code> command to further inspect all the attributes of a given plugin. Execute the following command:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker plugin inspect vieux/sshfs
+</code></pre>
+<p>and examine the output. Specifically note that there are two sections in the metadata called <code>Env</code>, one is under <code>Config</code> and the other under <code>Settings</code>. This is where the list of environment variables are listed that the author of the plugin has defined. In this specific situation we can see that there is a single variable called <code>DEBUG</code> defined. Its initial value is <code>0</code>.</p>
+</li>
+<li><p>We can use the <code>set</code> command to change values of the environment variables. Execute:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker plugin set vieux/sshfs DEBUG=1
+
+Error response from daemon: cannot set on an active plugin, disable plugin before setting
+</code></pre>
+<p>This is one of those times we have to disable the plugin first; do so, then try the <code>set</code> command again:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker plugin disable vieux/sshfs
+[centos@node-0 ~]$ docker plugin set vieux/sshfs DEBUG=1
+[centos@node-0 ~]$ docker plugin enable vieux/sshfs
+</code></pre>
+<p>and then inspect again the metadata of the plugin. Notice how the value of <code>DEBUG</code> has been adjusted. Only the one under the <code>Settings</code> node changed but the one under the <code>Config</code> node still shows the original (default) value.</p>
+</li>
+</ol>
+<h2 id="using-the-plugin">Using the Plugin</h2>
+<ol>
+<li><p>Make a directory on <code>node-1</code> that we will mount as a volume across our cluster:</p>
+<pre><code class="lang-bash">[centos@node-1 ~]$ mkdir ~/demo
+</code></pre>
+</li>
+<li><p>Back on <code>node-0</code>, use the plugin to create a volume that can be mounted via ssh:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker volume create -d vieux/sshfs \
+    -o sshcmd=centos@&lt;node-1 public IP&gt;:/home/centos/demo \
+    -o password=orca \
+    sshvolume
+</code></pre>
+</li>
+<li><p>Mount that volume in a new container as per usual:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker container run --rm -it -v sshvolume:/data alpine sh
+</code></pre>
+</li>
+<li><p>Inside the container navigate to the <code>/data</code> folder and create a new file:</p>
+<pre><code class="lang-bash">/ # cd /data
+/ # echo &#39;Hello from client!&#39; &gt; demo.txt
+/ # ls -al
+</code></pre>
+</li>
+<li><p>Head over to <code>node-1</code>, and confirm that <code>demo.txt</code> got written there.</p>
+</li>
+</ol>
+<h2 id="removing-a-plugin">Removing a Plugin</h2>
+<ol>
+<li><p>If we don&#39;t want or need this plugin anymore we can remove it using the command:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker volume rm sshvolume
+[centos@node-0 ~]$ docker plugin disable vieux/sshfs
+[centos@node-0 ~]$ docker plugin rm vieux/sshfs
+</code></pre>
+<p>Note how we first have to disable the plugin before we can remove it.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>Docker follows a &#39;batteries included but swappable&#39; mindset in its product design: everything you need to get started is included, but heavy customization is supported and encouraged. Docker plugins are one aspect of that flexibility, allowing users to define their own volume and networking behavior.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

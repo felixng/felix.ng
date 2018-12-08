@@ -9,17 +9,17 @@ navigation: True
 
 Some useful exercises and workshop from DockerCon Europe 2018
 
-#### Docker Fundamental 2-Day Training
+#### Docker Fundamental (2-Day Training Course)
 
-- [Lab Exercises (HTML)](https://dockercon2018.felix.ng/docker-fundamentals-lab/){:target="_blank"} / [Lab Exercises (PDF)](/assets/fundamentals-linux-exercises.pdf){:target="_blank"}
+- [Lab Exercises (HTML)](/dockercon2018/docker-fundamentals-lab/){:target="_blank"} / [Lab Exercises (PDF)](/assets/fundamentals-linux-exercises.pdf){:target="_blank"}
 
 - [Slides](/assets/docker-fundamentals.pdf){:target="_blank"}
 
-#### Docker for Enterprise Developers 2-Day Training
+#### Docker for Enterprise Developers (2-Day Training Course)
 
-- [Slides](https://dockercon2018.felix.ng/docker-for-enterprise-developers-slides/){:target="_blank"} 
+- [Slides](/dockercon2018/docker-for-enterprise-developers-slides/){:target="_blank"} 
 
-- [Lab Exercises](https://dockercon2018.felix.ng/docker-for-enterprise-developers-lab/){:target="_blank"} 
+- [Lab Exercises](/dockercon2018/docker-for-enterprise-developers-lab/){:target="_blank"} 
 
 #### Dockerizing Legacy App
 

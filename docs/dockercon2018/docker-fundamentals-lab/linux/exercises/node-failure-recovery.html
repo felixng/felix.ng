@@ -1,0 +1,96 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="node-failure-recovery">Node Failure Recovery</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Anticipate swarm scheduling decisions when nodes fail and recover</li>
+<li>Force swarm to reallocate workload across a swarm</li>
+</ul>
+<h2 id="setting-up-a-service">Setting up a Service</h2>
+<ol>
+<li><p>Set up a <code>myProxy</code> service with four replicas on one of your manager nodes:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service create --replicas 4 --name myProxy nginx
+</code></pre>
+</li>
+<li><p>Now watch the output of <code>docker service ps</code> on the same node:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ watch docker service ps myProxy
+</code></pre>
+<p>This should be stable for now, but will let us monitor scheduling updates as we interfere with the rest of our swarm.</p>
+</li>
+</ol>
+<h2 id="simulating-node-failure">Simulating Node Failure</h2>
+<ol>
+<li><p>SSH into <code>node-3</code>, and simulate a node failure by rebooting it:</p>
+<pre><code class="lang-bash">[centos@node-3 ~]$ sudo reboot now
+</code></pre>
+</li>
+<li><p>Back on your manager node, watch the updates to <code>docker service ps</code>; what happens to the task running on the rebooted node? Look at its desired state, any other tasks that get scheduled with the same name, and keep watching until <code>node-3</code> comes back online.</p>
+</li>
+</ol>
+<h2 id="force-rebalancing">Force Rebalancing</h2>
+<p>By default, if a node fails and rejoins a swarm it <em>will not</em> get its old workload back; if we want to redistribute workload across a swarm after new nodes join (or old nodes rejoin), we need to force-rebalance our tasks</p>
+<ol>
+<li><p>Back on the manager node, exit the watch mode with <code>CTRL+C</code>.</p>
+</li>
+<li><p>Force rebalance the tasks:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service update --force myProxy
+</code></pre>
+</li>
+<li><p>After the service converges, check which nodes the service tasks are scheduled on:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service ps myProxy
+... NAME            NODE                DESIRED STATE       CURRENT STATE
+... myProxy.1       node-0              Running             Running about a minute ago
+...  \_ myProxy.1   node-0              Shutdown            Shutdown about a minute ago
+... myProxy.2       node-3              Running             Running about a minute ago
+...  \_ myProxy.2   node-1              Shutdown            Shutdown about a minute ago
+... myProxy.3       node-1              Running             Running about a minute ago
+...  \_ myProxy.3   node-2              Shutdown            Shutdown about a minute ago
+... myProxy.4       node-2              Running             Running about a minute ago
+...  \_ myProxy.4   node-0              Shutdown            Shutdown about a minute ago
+...  \_ myProxy.4   node-3              Shutdown            Shutdown 2 minutes ago
+</code></pre>
+<p>The <code>\_</code> shape indicate <em>ancestor</em> tasks which have been shut down and replaced by a new task, typically after reconfiguring the service or rebalancing like we&#39;ve done here. Once the rebalance is complete, the current tasks for the <code>myProxy</code> service should be evenly distributed across your swarm.</p>
+</li>
+</ol>
+<h2 id="cleanup">Cleanup</h2>
+<ol>
+<li><p>On your manager node, remove all existing services, in preparation for future exercises:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service rm $(docker service ls -q)
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, you saw swarm&#39;s scheduler in action - when a node is lost from the swarm, tasks are automatically rescheduled to restore the state of our services. Note that nodes joining or rejoining the swarm do not get workload automatically reallocated from existing nodes to them; rescheduling only happens when tasks crash, services are first scheduled, or you force a reschedule as above.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

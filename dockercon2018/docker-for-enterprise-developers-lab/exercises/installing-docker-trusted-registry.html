@@ -1,0 +1,122 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="installing-docker-trusted-registry">Installing Docker Trusted Registry</h1>
+<p>Docker Trusted Registry provides pipeline management tooling as well as repositories for your images as they move through development and testing. In this exercise we&#39;re going to install DTR on our existing UCP.</p>
+<h2 id="prerequisites-">Prerequisites:</h2>
+<ul>
+<li>UCP as described in <strong>Installing UCP</strong>.</li>
+</ul>
+<h2 id="installing-dtr">Installing DTR</h2>
+<ol>
+<li><p>SSH into the UCP manager leader (<code>ucp-manager</code>). We&#39;ll install DTR on the same node as UCP, for a lightweight developer environment. In production, each would have a dedicated node, but there&#39;s no need for that in a testing environment.</p>
+</li>
+<li><p>Run the following script:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ DTR_FQDN=&lt;ucp-manager FQDN&gt;
+[centos@ucp-manager ~]$ UCP_IP=&lt;ucp-manager public IP&gt;
+[centos@ucp-manager ~]$ docker container run -it --rm docker/dtr:2.6.0 install \
+    --ucp-node ucp-manager \
+    --ucp-username admin \
+    --ucp-password adminadmin \
+    --ucp-url https://${UCP_IP} \
+    --ucp-insecure-tls \
+    --replica-https-port 4443 \
+    --replica-http-port 81 \
+    --dtr-external-url https://${DTR_FQDN}:4443
+</code></pre>
+<p>Those replica ports are necessary for installing DTR on the same nodes as UCP, to avoid port collisions. If DTR had dedicated nodes, we could leave the defaults of 80 and 443.</p>
+</li>
+</ol>
+<h2 id="trusting-dtr">Trusting DTR</h2>
+<p>All communication from each swarm node to DTR happens via TLS. Thus each node must trust DTR by downloading the CA certificate of DTR and updating the local CA trust.</p>
+<ol>
+<li><p>Still on <code>ucp-manager</code>, run the following script to make the node trust DTR: </p>
+<pre><code class="lang-bash"># Specify the fully qualified domain name (FQDN) of DTR (e.g. dtr.example.com)
+[centos@ucp-manager ~]$ DTR_FQDN=&lt;DTR FQDN&gt;
+# Download the DTR CA certificate
+[centos@ucp-manager ~]$ sudo curl -k https://$DTR_FQDN:4443/ca \
+    -o /etc/pki/ca-trust/source/anchors/$DTR_FQDN:4443.crt
+# Refresh the list of certificates to trust
+[centos@ucp-manager ~]$ sudo update-ca-trust
+# Restart the Docker daemon
+[centos@ucp-manager ~]$ sudo /bin/systemctl restart docker.service
+</code></pre>
+</li>
+<li><p>Login into DTR:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker login ${DTR_FQDN}:4443
+</code></pre>
+<p>And use your UCP admin credentials (admin / adminadmin by the defaults above) to login.</p>
+</li>
+<li><p>Repeat the above steps for each node of the swarm.</p>
+</li>
+</ol>
+<h2 id="testing-dtr">Testing DTR</h2>
+<ol>
+<li><p>Open a browser tab at <code>https:&lt;DTR_FQDN&gt;:4443</code> and login with your UCP admin credentials.</p>
+</li>
+<li><p>Create a repository <code>admin/alpine</code>.</p>
+</li>
+<li><p>Back on the UCP controller node pull the Alpine image:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker image pull alpine:latest
+</code></pre>
+</li>
+<li><p>Re-tag the image so that it can be pushed to DTR:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker image tag alpine:latest \
+    $DTR_FQDN:4443/admin/alpine:latest
+</code></pre>
+</li>
+<li><p>Push the image to DTR:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker image push $DTR_FQDN:4443/admin/alpine:latest
+</code></pre>
+</li>
+<li><p>In the DTR UI double check that the image has been pushed by navigating to the <strong>Images</strong> tab of the repository <code>admin/alpine</code>.</p>
+</li>
+</ol>
+<h2 id="uninstalling-dtr">Uninstalling DTR</h2>
+<blockquote>
+<p><strong>STOP</strong>: Only do this if you have screwed up you installation and need to start over with DTR!!!</p>
+</blockquote>
+<p>If we need to uninstall DTR then we can use this command:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker container run -it --rm docker/dtr:2.6.0 destroy \
+    --ucp-username admin \
+    --ucp-password adminadmin \
+    --ucp-url https://${UCP_IP} \
+    --ucp-insecure-tls \
+    --replica-id &lt;replica ID&gt;
+</code></pre>
+<p><strong>Note:</strong> To find out the replica ID we can first run the above command without the <code>--replica-id</code> parameter. The command will fail and tell us the replica ID that was found and should be used.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise we have installed DTR. We have installed it on the same node as UCP. This is OK for non-production systems. In a production environment it is recommended to install DTR in high availability mode on 3 worker nodes of the swarm, and to configure independent, highly available storage backing for your images. What we have here is suitable for demo and testing purposes only.</p>
+<p>We also have configured each node of our swarm to trust DTR and to test the integration we have pushed an image from a swarm node to DTR.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

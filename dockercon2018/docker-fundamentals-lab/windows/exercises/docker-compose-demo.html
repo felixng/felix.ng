@@ -1,0 +1,155 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="instructor-demo-docker-compose">Instructor Demo: Docker Compose</h1>
+<p>In this demo, we&#39;ll illustrate:</p>
+<ul>
+<li>Starting an app defined in a docker compose file</li>
+<li>Inter-service communication using DNS resolution of service names</li>
+</ul>
+<h2 id="exploring-the-compose-file">Exploring the Compose File</h2>
+<ol>
+<li><p>Please download the DockerCoins app from Github and change directory to ~/orchestration-workshop-net/dockercoins:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; git clone -b ee2.1 `
+    https://github.com/docker-training/orchestration-workshop-net.git
+PS: node-0 Administrator&gt; cd ~/orchestration-workshop-net
+</code></pre>
+</li>
+<li><p>Let&#39;s take a quick look at our Compose file for Dockercoins:</p>
+<pre><code class="lang-yaml">version: &quot;3.1&quot;
+
+services:
+  rng:
+    image: training/dc_rng:1.0
+    networks:
+    - nat
+    ports:
+    - &quot;8001:80&quot;
+
+  hasher:
+    image: training/dc_hasher:1.0
+    networks:
+    - nat
+    ports:
+    - &quot;8002:80&quot;
+
+  webui:
+    image: training/dc_webui:1.0
+    networks:
+    - nat
+    ports:
+    - &quot;8000:80&quot;
+
+  redis:
+    image: redis:3.2-nanoserver
+    networks:
+    - nat
+
+  worker:
+    image: training/dc_worker:1.0
+    networks:
+    - nat
+
+networks:
+  nat:
+    external: true
+</code></pre>
+<p>This Compose file contains 5 services, and a pointer to the default <code>nat</code> network. The images <code>training/dc_rng:1.0</code> et cetera are pre-built images containing the application logic you can explore in the subfolders of <code>~/orchestration-workshop-net</code>.</p>
+</li>
+<li><p>Start the app in the background:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker-compose up -d
+</code></pre>
+</li>
+<li><p>Make sure the services are up and running, and all the containers are attached to the local <code>nat</code> network:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker-compose ps
+PS: node-0 orchestration-workshop-net&gt; docker network inspect nat
+</code></pre>
+</li>
+<li><p>If everyting is up, visit your app at <code>&lt;node-0 public IP&gt;:8000</code> to see Dockercoins in action.</p>
+</li>
+</ol>
+<h2 id="communicating-between-containers">Communicating Between Containers</h2>
+<ol>
+<li><p>In this section, we&#39;ll demonstrate that containers created as part of a service in a Compose file are able to communicate with containers belonging to other services using just their service names. Let&#39;s start by listing our DockerCoins containers:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker container ls | findstr &#39;dc&#39;
+</code></pre>
+</li>
+<li><p>Now, connect into one container; let&#39;s pick <code>webui</code>:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker container exec `
+    -it &lt;Container ID&gt; powershell
+</code></pre>
+</li>
+<li><p>From within the container, ping <code>rng</code> by name:</p>
+<pre><code class="lang-powershell">PS C:\&gt; ping rng
+</code></pre>
+<p>Logs should be outputted resembling this:</p>
+<pre><code class="lang-powershell">Pinging rng [172.20.137.174] with 32 bytes of data:
+Reply from 172.20.137.174: bytes=32 time&lt;1ms TTL=128
+Reply from 172.20.137.174: bytes=32 time&lt;1ms TTL=128
+Reply from 172.20.137.174: bytes=32 time&lt;1ms TTL=128
+Reply from 172.20.137.174: bytes=32 time&lt;1ms TTL=128
+
+Ping statistics for 172.20.137.174:
+    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),
+Approximate round trip times in milli-seconds:
+    Minimum = 0ms, Maximum = 0ms, Average = 0ms
+</code></pre>
+<p>DNS lookup for the services in DockerCoins works because they are all attached to the local <code>nat</code> network.</p>
+</li>
+<li><p>After exiting this container, let&#39;s navigate to the <code>worker</code> folder and take a look at the top of <code>Program.cs</code>:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; cd worker
+PS: node-0 worker&gt; cat Program.cs
+
+using System;
+using System.Net.Http;
+using System.Threading;
+using ServiceStack.Redis;
+
+public class Program
+{
+    private static HttpClient Client = new HttpClient();
+    private const string rng_uri = &quot;http://rng&quot;;
+    private const string hasher_uri = &quot;http://hasher&quot;;
+...
+</code></pre>
+<p>Our worker is configured to contact the random number generator and hasher directly by their service names, <code>rng</code> and <code>hasher</code>. No service discovery or IP lookups required - Docker ensures that service names are DNS-resolvable, abstracting away our service-to-service communication.</p>
+</li>
+<li><p>Shut down Dockercoins and clean up its resources:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker-compose down
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, we stood up an application using Docker Compose. The most important new idea here is the notion of Docker Services, which are collections of identically configured containers. Docker Service names are resolvable by DNS, so that we can write application logic designed to communicate service to service; all service discovery and load balancing between your application&#39;s services is abstracted away and handled by Docker.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

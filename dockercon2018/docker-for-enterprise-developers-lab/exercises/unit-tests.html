@@ -1,0 +1,618 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="unit-tests">Unit Tests</h1>
+<p>Unit tests are by their nature tightly coupled to the code under test. Thus they need to run in the same container as the code we want to test.</p>
+<p>The project folder for this exercise is <code>~/ddev-labs/unit-tests</code>.</p>
+<h2 id="extending-the-node-js-ui">Extending the Node JS UI</h2>
+<p>We want to add some functionality to our Node based UI for which we can write unit tests. We also want to add some helper code to smooth the unit-test experience.</p>
+<ol>
+<li><p>Open <code>ui/src/server.js</code> in your editor and replace the last two lines:</p>
+<pre><code class="lang-javascript">app.listen(3000, &#39;0.0.0.0&#39;);
+console.log(&quot;Listening at 0.0.0.0:3000&quot;);
+</code></pre>
+<p>with this:</p>
+<pre><code class="lang-javascript">var server = app.listen(3000, &#39;0.0.0.0&#39;, function(){
+    console.log(&quot;Express server listening on 0.0.0.0:3000&quot;);
+});
+</code></pre>
+</li>
+<li><p>Add a function <code>stop</code> to the <code>exports</code> object as follows:</p>
+<pre><code class="lang-javascript">exports.stop = function(){
+    server.close();
+}
+</code></pre>
+<p>This is a pure helper function that will be used later by our unit-test code.</p>
+</li>
+<li><p>Add a file <code>ui/src/primes.js</code> which contains the definition of the prime numbers algorithm:</p>
+<pre><code class="lang-javascript">exports.isPrime = function(number){
+    for(var i = 2; i &lt; number/2; i++) {
+        if(number % i === 0) {
+            return false;
+        }
+    }
+    return number &gt; 1;
+}
+</code></pre>
+</li>
+<li><p>Add an endpoint to the <code>ui/src/server.js</code> file which uses the above function <code>isPrime</code> to test for prime numbers:</p>
+<pre><code class="lang-javascript">app.get(&#39;/isPrime/:number&#39;, function(req, res){
+    res.status(200).send(primes.isPrime(req.params.number)+&#39;\n&#39;);
+});
+</code></pre>
+<p>and also add an import statement at the top of the file:</p>
+<pre><code class="lang-javascript">var primes = require(&#39;./primes.js&#39;);
+</code></pre>
+<p>Here is how <code>ui/src/server.js</code> could look like after the changes:</p>
+<pre><code class="lang-javascript">var express = require(&#39;express&#39;);
+var request=require(&#39;request&#39;);
+var mustacheExpress = require(&#39;mustache-express&#39;);
+var os = require(&#39;os&#39;);
+var primes = require(&#39;./primes.js&#39;);
+
+var app = express();
+app.set(&#39;view engine&#39;, &#39;html&#39;);
+app.engine(&#39;html&#39;, mustacheExpress());          // register file extension
+app.set(&#39;views&#39;, __dirname);
+
+app.get(&#39;/&#39;,function(req,res){
+    res.status(200).send(&#39;Pets Demo Application&#39;);
+});
+
+app.get(&#39;/pet&#39;,function(req,res){
+    var hostname = os.hostname();
+    getPet(function(url){
+        res.render(&#39;index&#39;, {
+                url: url,
+                hostname: hostname
+            });
+    })
+});
+
+app.get(&#39;/isPrime/:number&#39;, function(req, res){
+    res.status(200).send(primes.isPrime(req.params.number)+&#39;\n&#39;
+);
+});
+
+var getPet = function(callback) {
+    request.get(&#39;http://api:8080/api/pet&#39;, function(err, res, body){
+        url = JSON.parse(body).url;
+        callback(url);
+    });
+}
+
+var server = app.listen(3000, &#39;0.0.0.0&#39;, function(){
+    console.log(&quot;Express server listening on 0.0.0.0:3000&quot;);
+});
+
+exports.stop = function(){
+    server.close();
+}
+</code></pre>
+</li>
+<li><p>Build the image for this app:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ cd ~/ddev-labs/unit-tests/ui
+ubuntu@infra:~/ddev-labs/unit-tests/ui$ docker image build -t pets-ui .
+</code></pre>
+</li>
+<li><p>Run the app:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-tests/ui$ docker container run \
+    --rm -it -p 3000:3000 pets-ui
+</code></pre>
+</li>
+<li><p>In another terminal window use <code>curl</code> to find out whether 7 is a prime number:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl localhost:3000/isPrime/7
+</code></pre>
+</li>
+<li><p>Stop the container with <code>docker container stop &lt;container ID&gt;</code>.</p>
+</li>
+</ol>
+<h2 id="adding-unit-tests">Adding Unit Tests</h2>
+<p>In this part, we will build an image that includes our application, the unittests, and a test framework like following figure shows:</p>
+<p><img src="../images/unittests-in-container.png" alt="">/</p>
+<ol>
+<li><p>In the folder <code>unit-tests/ui</code> we have added a subfolder <code>specs</code>.</p>
+</li>
+<li><p>Open the file <code>ui/specs/primes-spec.js</code> and add this content:</p>
+<pre><code class="lang-javascript">var sut = require(&#39;../src/primes.js&#39;);
+describe(&quot;when evaluating if a given number is a prime&quot;, function(){
+    describe(&quot;when the number is a prime&quot;, function(){
+        it(&quot;should return &#39;true&#39;&quot;, function(){
+        expect(sut.isPrime(7)).toBe(true);
+        });
+    });
+});
+</code></pre>
+<p>We&#39;re using Jasmin (<a href="https://jasmine.github.io/">https://jasmine.github.io/</a>) as our test framework. The variable name <code>sut</code> stands for <em>system under test</em> and is often used to refer to the component or functionality to be tested.</p>
+</li>
+<li><p>Open the file <code>ui/Dockerfile-unittests</code> and note that (compared to <code>ui/Dockerfile</code>) we have added the following:</p>
+<pre><code class="lang-dockerfile">RUN npm install -g jasmine-node
+</code></pre>
+<p>as the second line. This installs <code>jasmine-node</code> which we need to be able to execute the tests.</p>
+</li>
+<li><p>We also added a line to copy the specs into the image (line 8):</p>
+<pre><code class="lang-dockerfile">COPY ./specs /app/specs
+</code></pre>
+</li>
+<li><p>Open the file <code>ui/package.json</code> and note that we extended the <code>script</code> block with a new <code>test</code> script:</p>
+<pre><code class="lang-json">...
+&quot;scripts&quot;: {
+    &quot;start&quot;: &quot;node src/server.js&quot;,
+    &quot;test&quot;: &quot;jasmine-node specs&quot;
+},
+...
+</code></pre>
+</li>
+<li><p>Build the image:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ cd ~/ddev-labs/unit-tests/ui
+ubuntu@infra:~/ddev-labs/unit-tests/ui$ docker image build -t pets-ui-unittests \
+    -f Dockerfile-unittests .
+</code></pre>
+</li>
+<li><p>Run the container with the instruction to execute the unit tests instead of just running the app:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-tests/ui$ docker container run \
+    --rm -it pets-ui-unittests npm run test
+
+&gt; pets@1.0.0 test /app
+&gt; jasmine-node specs
+
+.
+
+Finished in 0.008 seconds
+1 test, 1 assertion, 0 failures, 0 skipped
+</code></pre>
+</li>
+</ol>
+<h2 id="not-shipping-unit-tests">Not Shipping Unit Tests</h2>
+<p>In the example above, we built our unit test code right into our image. Of course we don&#39;t want testing code (or tooling) going into our production images; in what follows we explore how to avoid this.</p>
+<h3 id="mounting-test-code">Mounting test code</h3>
+<p>One options is to mount test code during the testing phase, rather than including it in our image. To make things simpler we need to adhere to some standards in where we put our files containing test code and how we name them. In our case, unit tests will always reside in a sub-folder called <code>specs</code> like following figure shows:</p>
+<p><img src="../images/unittests-mount.png" alt="">/</p>
+<ol>
+<li><p>In the <code>ui</code> folder create a file <code>.dockerignore</code> with the following content:</p>
+<pre><code class="lang-bash">node_modules
+specs
+</code></pre>
+<p>This will instruct Docker to not include folders named <code>node_modules</code> and <code>specs</code> (including all their content) in the context when building the image.</p>
+</li>
+<li><p>Change the two copy statements that copy the <code>src</code> and <code>specs</code> folders in <code>Dockerfile-unittests</code> into a single one like this:</p>
+<pre><code class="lang-bash">COPY . /app
+</code></pre>
+</li>
+<li><p>Build the image.</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-tests/ui$ docker image build \
+    -t pets-ui-unittests -f Dockerfile-unittests .
+</code></pre>
+</li>
+<li><p>Run an interactive container based on this image:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-tests/ui$ docker container run \
+    --rm -it pets-ui-unittests sh
+</code></pre>
+</li>
+<li><p>While inside the container make sure the <code>specs</code> folder was not copied into the container, despite the <code>COPY . /app</code> command you added to your Dockerfile; the <code>.dockerignore</code> rule prevented <code>specs</code> from being copied in.</p>
+</li>
+<li><p>Quit the container via <code>exit</code>.</p>
+</li>
+<li><p>Now run the tests by mounting them into the container at runtime:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-tests/ui$ docker container run --rm -it \
+    -v $(pwd)/specs:/app/specs \
+    pets-ui-unittests npm run test
+</code></pre>
+<p>The tests should execute and produce the same output as in the previous exercise.</p>
+</li>
+</ol>
+<h2 id="creating-a-test-image">Creating a Test Image</h2>
+<p>If we also want to avoid that our production image contains any libraries that are only needed for testing (e.g. <code>jasmine-node</code> in our case) then we can build a special test image that inherits from the production image like following figure shows:</p>
+<p><img src="../images/unittests-image.png" alt="">/</p>
+<ol>
+<li><p>Build the production image, based on <code>ui/Dockerfile</code>:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-tests/ui$ docker image build -t pets-ui .
+</code></pre>
+</li>
+<li><p>Modify our <code>Dockerfile-unittests</code> to look like this:</p>
+<pre><code class="lang-dockerfile">FROM pets-ui
+RUN npm install jasmine-node -g
+CMD [&quot;npm&quot;, &quot;run&quot;, &quot;test&quot;]
+</code></pre>
+</li>
+<li><p>Build the test image using this new Dockerfile (note the <code>-f</code> parameter):</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-tests/ui$ docker image build -t pets-ui-unittests \
+    -f Dockerfile-unittests .
+</code></pre>
+</li>
+<li><p>Now run an instance of this image to execute the tests (don&#39;t forget to mount the volume with the tests):</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-tests/ui$ docker container run --rm -it \
+    -v $(pwd)/specs:/app/specs \
+    pets-ui-unittests
+</code></pre>
+<p>We have the production image <code>pets-ui</code> which only contains production code and dependencies and a separate image <code>pets-ui-unittests</code> which inherits from the former and additionally contains the necessary dependencies that are needed to execute tests. We also re-defined the <code>CMD</code> to execute <code>npm run test</code> when running a container.</p>
+</li>
+</ol>
+<h2 id="edit-and-continue-when-writing-tests">Edit and Continue When Writing Tests</h2>
+<p>Currently we have to re-run the test container each time we modify code or add a new test. To improve the process a bit we can run the container with a slightly modified entrypoint to configure <code>jasmine-node</code> to auto-test on change (see <a href="https://github.com/mhevery/jasmine-node">https://github.com/mhevery/jasmine-node</a> for details):</p>
+<p><img src="../images/unittests-edit-and-continue.png" alt="">/</p>
+<ol>
+<li><p>Add a <code>test-watch</code> script to the <code>ui/package.json</code> file:</p>
+<pre><code class="lang-json">...
+&quot;scripts&quot;: {
+    &quot;start&quot;: &quot;node src/server.js&quot;,
+    &quot;test-watch&quot;: &quot;jasmine-node specs --autotest --watch ./**/*.js&quot;,
+    &quot;test&quot;: &quot;jasmine-node specs&quot;
+},
+...
+</code></pre>
+</li>
+<li><p>Rebuild the image:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-tests/ui$ docker image build -t pets-ui-unittests \
+    -f Dockerfile-unittests .
+</code></pre>
+</li>
+<li><p>Execute the test container with the <code>test-watch</code> script:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-tests/ui$ docker container run --rm -it \
+    -v $(pwd):/app \
+    pets-ui-unittests npm run test-watch
+</code></pre>
+<p>Note that since <code>test-watch</code> is not a standard script we need to run it with the command <code>npm run test-watch</code> and not just <code>npm test-watch</code>.</p>
+<p>The output should now look like this:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-tests/ui$ docker container run --rm -it \
+&gt;         -v $(pwd):/app \
+&gt;         pets-ui-unittests npm run test-watch
+
+&gt; pets@1.0.0 test-watch /app
+&gt; jasmine-node specs --autotest --watch ./**/*.js
+
+.
+
+Finished in 0.007 seconds
+1 test, 1 assertion, 0 failures, 0 skipped
+
+Watching for changes in ./specs/primes-spec.js
+Watching for changes in ./src/primes.js
+Watching for changes in ./src/server.js
+Watching for changes in /app/specs
+</code></pre>
+</li>
+<li><p>Now let the container run and add a new test to the file <code>ui/specs/primes-spec.js</code>, just after the first one, which makes sure that if we provide a non-prime number the answer will be <code>false</code>. The result should look like this:</p>
+<pre><code class="lang-javascript">var sut = require(&#39;../src/primes.js&#39;);
+describe(&quot;when evaluating if a given number is a prime&quot;, function(){
+    describe(&quot;when the number is a prime&quot;, function(){
+        it(&quot;should return &#39;true&#39;&quot;, function(){
+        expect(sut.isPrime(11)).toBe(true);
+        });
+    });
+    describe(&quot;when the number is a not prime&quot;, function(){
+        it(&quot;should return &#39;false&#39;&quot;, function(){
+        expect(sut.isPrime(4)).toBe(false);
+        });
+    });
+});
+</code></pre>
+</li>
+<li><p>Notice that immediately after you saved the above changes the tests were executed again - but this one failed!</p>
+</li>
+<li><p>Apparently there is a bug in <code>ui/src/primes.js</code>. Fix it by replacing the <code>&lt;</code> sign by a <code>&lt;=</code> sign, and save the fix.</p>
+</li>
+<li><p>Notice that again upon saving the file the tests are re-executed, this time hopefully all passing.</p>
+</li>
+</ol>
+<h2 id="optional-challenge-unit-testing-a-net-core-application">Optional Challenge: Unit Testing a .NET Core Application</h2>
+<p>This exercise is optional; give it a try if you have some extra time after finishing the examples above.</p>
+<h3 id="creating-a-net-core-application">Creating a .NET Core application</h3>
+<p>In the following few exercises we&#39;re going to create a simple .NET Core service with unit tests and containerize them similarly to what we have done for the Node Express application above.</p>
+<ol>
+<li><p>Create a folder <code>~/ddev-labs/unit-test-dot-net</code>.</p>
+</li>
+<li><p>Inside this folder run the following command:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-test-dot-net$ docker container run --rm -it \
+    -v $(pwd):/app \
+    -w /app microsoft/dotnet:1.1-sdk bash
+</code></pre>
+</li>
+<li><p>Inside the container create a .NET class library as follows:</p>
+<pre><code class="lang-bash">/app# mkdir PrimeService
+/app# cd PrimeService
+/app/PrimeService# dotnet new classlib
+</code></pre>
+<p>Notice that this creates a folder <code>PrimeService</code> containing files <code>Class1.cs</code> and <code>PrimeService.csproj</code> also on the host since we have volume mounted the host directory.</p>
+</li>
+<li><p>In the host file system rename the file <code>Class1.cs</code> to <code>PrimeService.cs</code>.</p>
+</li>
+<li><p>Replace its content with the following one:</p>
+<pre><code class="lang-java">using System;
+
+namespace Prime.Services
+{
+    public class PrimeService
+    {
+        public bool IsPrime(int candidate)
+        {
+            throw new NotImplementedException(&quot;Please create a test first&quot;);
+        }
+    }
+}
+</code></pre>
+</li>
+<li><p>Back in the running .NET container create a folder <code>/app/PrimeService.Tests</code> and navigate into this folder:</p>
+<pre><code class="lang-bash">/app/PrimeService# mkdir /app/PrimeService.Tests
+/app/PrimeService# cd /app/PrimeService.Tests
+</code></pre>
+</li>
+<li><p>Make a new test project in this folder:</p>
+<pre><code class="lang-bash">/app/PrimeService.Tests# dotnet new classlib
+</code></pre>
+<p>This should have added two files <code>Class1.cs</code> and <code>PrimeService.Tests.csproj</code> to the folder.</p>
+</li>
+<li><p>Now we need to add the <code>PrimeService</code> project as a reference to the test project:</p>
+<pre><code class="lang-bash">/app/PrimeService.Tests# dotnet add reference ../PrimeService/PrimeService.csproj
+</code></pre>
+</li>
+<li><p>Open the file <code>PrimeService.Tests.csproj</code> and change it to look like this:</p>
+<pre><code class="lang-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;
+    &lt;PropertyGroup&gt;
+        &lt;TargetFramework&gt;netcoreapp1.1&lt;/TargetFramework&gt;
+    &lt;/PropertyGroup&gt;
+
+    &lt;ItemGroup&gt;
+        &lt;PackageReference Include=&quot;xunit&quot; Version=&quot;2.3.0-beta2-build3683&quot; /&gt;
+        &lt;DotNetCliToolReference Include=&quot;dotnet-xunit&quot; Version=&quot;2.3.0-beta2-build3683&quot; /&gt;
+    &lt;/ItemGroup&gt;
+
+    &lt;ItemGroup&gt;
+        &lt;ProjectReference Include=&quot;..\PrimeService\PrimeService.csproj&quot; /&gt;
+    &lt;/ItemGroup&gt;
+&lt;/Project&gt;
+</code></pre>
+<p>Note: Please refer to this link for more info: <a href="https://xunit.github.io/docs/getting-started-dotnet-core">https://xunit.github.io/docs/getting-started-dotnet-core</a></p>
+</li>
+<li><p>Rename the class <code>Class1.cs</code> to <code>PrimeService_IsPrimeShould.cs</code> and add the following content:</p>
+<pre><code class="lang-java">using Xunit;
+using Prime.Services;
+
+namespace Prime.UnitTests.Services
+{
+    public class PrimeService_IsPrimeShould
+    {
+        private readonly PrimeService _primeService;
+
+        public PrimeService_IsPrimeShould()
+        {
+            _primeService = new PrimeService();
+        }
+
+        [Fact]
+        public void ReturnFalseGivenValueOf1()
+        {
+            var result = _primeService.IsPrime(1);
+
+            Assert.False(result, $&quot;1 should not be prime&quot;);
+        }
+    }
+}
+</code></pre>
+<p>Gist: <a href="http://bit.ly/2v9B3ua">http://bit.ly/2v9B3ua</a></p>
+</li>
+<li><p>Back in the container, run the restore command to download all dependencies:</p>
+<pre><code class="lang-bash">/app/PrimeService.Tests# dotnet restore
+</code></pre>
+<p>The output should look like this:</p>
+<pre><code class="lang-bash">Restoring packages for /app/PrimeService.Tests/PrimeService.Tests.csproj...
+Restoring packages for /app/PrimeService/PrimeService.csproj...
+Lock file has not changed. Skipping lock file write. Path: /app/PrimeService/obj/project.assets.json
+Restore completed in 199.38 ms for /app/PrimeService/PrimeService.csproj.
+Restoring packages for /app/PrimeService.Tests/PrimeService.Tests.csproj...
+Restore completed in 184.76 ms for /app/PrimeService.Tests/PrimeService.Tests.csproj.
+Generating MSBuild file /app/PrimeService.Tests/obj/PrimeService.Tests.csproj.nuget.g.props.
+Generating MSBuild file /app/PrimeService.Tests/obj/PrimeService.Tests.csproj.nuget.g.targets.
+Writing lock file to disk. Path: /app/PrimeService.Tests/obj/project.assets.json
+Restore completed in 536.08 ms for /app/PrimeService.Tests/PrimeService.Tests.csproj.
+
+NuGet Config files used:
+    /root/.nuget/NuGet/NuGet.Config
+
+Feeds used:
+    https://api.nuget.org/v3/index.json
+
+Installed:
+    20 package(s) to /app/PrimeService/PrimeService.Tests/PrimeService.Tests.csproj
+</code></pre>
+</li>
+<li><p>Finally we can try to run the tests:</p>
+<pre><code class="lang-bash">/app/PrimeService.Tests# dotnet xunit
+</code></pre>
+<p>This should result in a failure with a message [snippet]:</p>
+<pre><code class="lang-bash">...
+xUnit.net Console Runner (64-bit .NET Core 4.6.25211.01)
+Discovering: PrimeService.Tests
+Discovered:  PrimeService.Tests
+Starting:    PrimeService.Tests
+    Prime.UnitTests.Services.PrimeService_IsPrimeShould.ReturnFalseGivenValueOf1 [FAIL]
+    System.NotImplementedException : Please create a test first
+...
+</code></pre>
+</li>
+<li><p>Implement code in the class <code>PrimeService.cs</code> to handle the test correctly:</p>
+<pre><code class="lang-java">public bool IsPrime(int candidate)
+{
+    if (candidate == 1)
+    {
+        return false;
+    }
+    throw new NotImplementedException(&quot;Please create a test first&quot;);
+}
+</code></pre>
+</li>
+<li><p>Run the tests again. This time it should succeed. Here&#39;s a snippet from the output:</p>
+<pre><code class="lang-bash">...
+xUnit.net Console Runner (64-bit .NET Core 4.6.25211.01)
+    Discovering: PrimeService.Tests
+    Discovered:  PrimeService.Tests
+    Starting:    PrimeService.Tests
+    Finished:    PrimeService.Tests
+=== TEST EXECUTION SUMMARY ===
+    PrimeService.Tests  Total: 1, Errors: 0, Failed: 0, Skipped: 0, Time: 0.162s
+</code></pre>
+</li>
+<li><p>Exit the .NET container by entering <code>exit</code> in the shell.</p>
+</li>
+</ol>
+<h3 id="containerizing-the-net-application">Containerizing the .NET Application</h3>
+<p>Now that we have interactively created the code for our .NET project we want to containerize it.</p>
+<ol>
+<li><p>Add a <code>Dockerfile</code> to the project folder <code>unit-test-dot-net</code> with this content:</p>
+<pre><code class="lang-dockerfile">FROM microsoft/dotnet:1.1-sdk
+RUN mkdir -p /app
+COPY ./PrimeService/PrimeService.csproj /app/PrimeService/
+COPY ./PrimeService.Tests/PrimeService.Tests.csproj /app/PrimeService.Tests/
+WORKDIR /app/PrimeService.Tests
+RUN dotnet restore
+COPY . /app
+ENTRYPOINT dotnet xunit
+</code></pre>
+</li>
+<li><p>Build the app:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-test-dot-net$ docker image build -t dot-net-app .
+</code></pre>
+</li>
+<li><p>Run a container from this image:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-test-dot-net$ docker container run --rm -it dot-net-app
+</code></pre>
+<p>The tests should run and the output should be the same as when we ran the tests interactively in the .NET container earlier on.</p>
+</li>
+</ol>
+<h3 id="adding-edit-and-continue-experience">Adding Edit and Continue Experience</h3>
+<p>Instead of always restarting the container when we have added or changed some code we can do better and use the <strong>watcher</strong> tool provided by Microsoft.</p>
+<ol>
+<li><p>Add the following snippet to the file <code>PrimeService.Tests.csproj</code>:</p>
+<pre><code class="lang-xml">&lt;ItemGroup&gt;
+    &lt;DotNetCliToolReference Include=&quot;Microsoft.DotNet.Watcher.Tools&quot; Version=&quot;1.0.0&quot; /&gt;
+&lt;/ItemGroup&gt;
+</code></pre>
+</li>
+<li><p>Change the <code>ENTRYPOINT</code> in the Dockerfile as follows:</p>
+<pre><code class="lang-dockerfile">ENTRYPOINT dotnet watch xunit
+</code></pre>
+</li>
+<li><p>Build the image.</p>
+</li>
+<li><p>Run the container using volume mounting:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-test-dot-net$ docker container run --rm -it \
+    -v $(pwd):/app dot-net-app
+</code></pre>
+<p>we should see the following output:</p>
+<pre><code class="lang-bash">watch : Started
+Detecting target frameworks in PrimeService.Tests.csproj...
+Building for framework netcoreapp1.1...
+  PrimeService -&gt; /app/PrimeService/bin/Debug/netstandard1.4/PrimeService.dll
+  PrimeService.Tests -&gt; /app/PrimeService.Tests/bin/Debug/netcoreapp1.1/PrimeService.Tests.dll
+Running .NET Core tests for framework netcoreapp1.1...
+xUnit.net Console Runner (64-bit .NET Core 4.6.25211.01)
+  Discovering: PrimeService.Tests
+  Discovered:  PrimeService.Tests
+  Starting:    PrimeService.Tests
+  Finished:    PrimeService.Tests
+=== TEST EXECUTION SUMMARY ===
+   PrimeService.Tests  Total: 1, Errors: 0, Failed: 0, Skipped: 0, Time: 0.160s
+</code></pre>
+</li>
+<li><p>Add another test to the file <code>PrimeService_IsPrimeShould.cs</code> and save:</p>
+<pre><code class="lang-java">[Theory]
+[InlineData(-1)]
+[InlineData(0)]
+[InlineData(1)]
+public void ReturnFalseGivenValuesLessThan2(int value)
+{
+    var result = _primeService.IsPrime(value);
+
+    Assert.False(result, $&quot;{value} should not be prime&quot;);
+}
+</code></pre>
+</li>
+<li><p>Observe that the tests are run again upon saving of the changes. Of course the test will fail since our production code is not yet handling those scenarios.</p>
+</li>
+<li><p>Add the code to make the test succeed. In the class <code>PrimeService.cs</code> change the first line of the <code>IsPrime</code> function to:</p>
+<pre><code class="lang-java">if (candidate &lt; 2)
+</code></pre>
+<p>After a short timeout the tests should be rerun. This time they should succeed (4 Passed).</p>
+</li>
+</ol>
+<h3 id="freeing-the-application-image-from-test-code">Freeing the application image from test code</h3>
+<p>Once again, if we don&#39;t want to ship test code with the production image we can use the same technique that we used in the Node Express sample and create a special test image that inherits from the production image.</p>
+<ol>
+<li><p>Move the <code>Dockerfile</code> into the subfolder <code>PrimeService</code>.</p>
+</li>
+<li><p>Change the <code>Dockerfile</code> to look like this:</p>
+<pre><code class="lang-dockerfile">FROM microsoft/dotnet:1.1-sdk
+RUN mkdir -p /app/PrimeService
+WORKDIR /app/PrimeService
+COPY ./PrimeService.csproj /app/PrimeService/
+RUN dotnet restore
+COPY . /app/PrimeService
+</code></pre>
+</li>
+<li><p>Make sure in the terminal you&#39;re in the project folder <code>unit-test-dot-net</code>.</p>
+</li>
+<li><p>Build the production image:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-test-dot-net$ docker image build \
+    -t dot-net-app PrimeService
+</code></pre>
+</li>
+<li><p>To the project folder <code>unit-test-dot-net</code> add a file <code>Dockerfile-unit</code> with this content:</p>
+<pre><code class="lang-dockerfile">FROM dot-net-app
+RUN mkdir /app/PrimeService.Tests
+WORKDIR /app/PrimeService.Tests
+COPY ./PrimeService.Tests/PrimeService.Tests.csproj /app/PrimeService.Tests/
+RUN dotnet restore
+ENTRYPOINT dotnet watch xunit
+</code></pre>
+</li>
+<li><p>Build the test image:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-test-dot-net$ docker image build \
+    -t unit-test-dot-net-app \
+    -f Dockerfile-unit .
+</code></pre>
+</li>
+<li><p>Run the test container:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/unit-test-dot-net$ docker container run --rm -it \
+    -v $(pwd):/app unit-test-dot-net-app
+</code></pre>
+<p>The 4 tests (we have so far) should be executed and pass.</p>
+</li>
+<li><p>Add some additional tests and make sure they automatically run when you save.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise we have learned how we can write unit tests against the UI part of our workshop sample. We also have discussed how we can package and run those tests.</p>
+<p>We also have shown techniques on how to improve the workflow when writing code and authoring tests for it such as that a typical &quot;edit and continue&quot; experience is achieved.</p>
+<p>Of course we cannot just write unit tests in JavaScript using e.g. Jasmin but in any of the popular languages like C#/.NET, Java or Python. The test code ideally is written in the same language as the code under test.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

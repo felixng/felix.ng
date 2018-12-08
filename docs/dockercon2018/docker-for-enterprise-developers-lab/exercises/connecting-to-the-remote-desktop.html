@@ -1,0 +1,68 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="appendix-connecting-to-the-remote-desktop">Appendix: Connecting to the Remote Desktop</h1>
+<p>At times, we&#39;d like to manipulate Universal Control Plane from our personal machines using things like the API or client bundles, or develop containerized software locally before pushing it the Docker Trusted Registry. If you are unable to install the necessary utilities on your machine for this workshop, you can use a pre-configured remote desktop.</p>
+<ol>
+<li>Open or install a remote desktop client. Windows machines should have Microsoft Remote Desktop pre-installed; Mac users can install the same from the app store.</li>
+</ol>
+<h2 id="windows-users">Windows Users</h2>
+<ol>
+<li><p>Enter the public IP of your <code>infra</code> node after opening Remote Desktop.</p>
+</li>
+<li><p>Click Connect. You&#39;ll be presented with a security warning; click &#39;Yes&#39; to proceed.</p>
+</li>
+<li><p>A login form should be presented. Enter username <strong>ubuntu</strong>, and the SSH password your instructor provided to you for your AWS nodes. Click OK, and you&#39;ll be taken to your remote desktop.</p>
+</li>
+</ol>
+<h2 id="mac-users">Mac Users</h2>
+<ol>
+<li><p>Make sure you&#39;re using Microsoft Remote Desktop 8.x.</p>
+</li>
+<li><p>Open Microsoft Remote Desktop, and click &#39;New&#39;.</p>
+</li>
+<li><p>Fill in the following fields:</p>
+<ul>
+<li>Connection Name: Docker</li>
+<li>PC Name: Public IP of your <code>infra</code> node.</li>
+<li>User name: <code>ubuntu</code></li>
+<li>Password: SSH password your instructor provided to you for your AWS nodes.</li>
+</ul>
+</li>
+<li><p>Click the red dismiss button in this form field. It is automatically saved, and you should see a connection called &#39;Docker&#39; in the &#39;My Desktops&#39; list. Double-click it.</p>
+</li>
+<li><p>An error message will pop up complaining about connection problems. Dismiss it by clicking &#39;ok&#39;, then fill in your AWS SSH password on the form that appears. Click &#39;ok&#39;, and you&#39;ll be taken to your remote desktop.</p>
+</li>
+</ol>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

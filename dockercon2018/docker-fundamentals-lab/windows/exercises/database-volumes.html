@@ -1,0 +1,113 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="database-volumes">Database Volumes</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Provide a docker volume as a database backing to mongodb</li>
+<li>Make one mongodb container&#39;s database available to other mongodb containers</li>
+</ul>
+<h2 id="launching-mongodb">Launching mongodb</h2>
+<ol>
+<li><p>Download a mongodb image, and inspect it to determine its default volume usage:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker image pull mongo:3-windowsservercore
+PS: node-0 Administrator&gt; docker image inspect mongo:3-windowsservercore
+
+...
+&quot;Volumes&quot;: {
+    &quot;C:\\data\\configdb&quot;: {},
+    &quot;C:\\data\\db&quot;: {}
+},
+...
+</code></pre>
+<p>You should see a <code>Volumes</code> block like the above, indicating that those paths in the container filesystem will get volumes automatically mounted to them when a container is started based on this image.</p>
+</li>
+<li><p>Set up a running instance of this mongodb container:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run --name mongoserv -d `
+    -v mongodata:C:\data\db `
+    mongo:3-windowsservercore
+</code></pre>
+<p>Notice the explicit volume mount, <code>-v mongodata:C:\data\db</code>; if we hadn&#39;t done this, a randomly named volume would have been mounted to the container&#39;s <code>C:\data\db</code>. Naming the volume explicitly is a best practice that will become useful when we start mounting this volume in multiple containers.</p>
+</li>
+</ol>
+<h2 id="writing-to-the-database">Writing to the Database</h2>
+<ol>
+<li><p>Spawn a <code>mongo</code> process inside your mongodb container:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container exec -it mongoserv mongo
+</code></pre>
+<p>You&#39;ll be presented with a mongodb terminal where you can manipulate a database directly.</p>
+</li>
+<li><p>Create an arbitrary table in the database:</p>
+<pre><code class="lang-powershell">&gt; use cats
+&gt; db.cats.save({&quot;coat&quot;:&quot;calico&quot;, &quot;icecream&quot;:&quot;strawberry&quot;})
+&gt; db.cats.save({&quot;coat&quot;:&quot;tabby&quot;, &quot;icecream&quot;:&quot;lemon&quot;})
+</code></pre>
+<p>Double check you created the table you expected, and then quit this container:</p>
+<pre><code class="lang-powershell">&gt; db.cats.find()
+
+{ &quot;_id&quot; : ObjectId(&quot;...&quot;), &quot;coat&quot; : &quot;calico&quot;, &quot;icecream&quot; : &quot;strawberry&quot; }
+{ &quot;_id&quot; : ObjectId(&quot;...&quot;), &quot;coat&quot; : &quot;tabby&quot;, &quot;icecream&quot; : &quot;lemon&quot; }
+
+&gt; exit
+</code></pre>
+</li>
+<li><p>Delete the <code>mongoserv</code> container:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container rm -f mongoserv
+</code></pre>
+</li>
+<li><p>Create a new mongodb server container, mounting the <code>mongodata</code> volume just like last time:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run --name mongoserv -d `
+    -v mongodata:C:\data\db `
+    mongo:3-windowsservercore
+</code></pre>
+</li>
+<li><p>Spawn another <code>mongo</code> process inside this new container to get a mongodb terminal, also like before:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container exec -it mongoserv mongo
+</code></pre>
+</li>
+<li><p>List the contents of the <code>cats</code> database:</p>
+<pre><code class="lang-powershell">&gt; use cats
+&gt; db.cats.find()
+</code></pre>
+<p>The contents of the database have survived the deletion and recreation of the database container; this would not have been true if the database was keeping its data in the writable container layer. As above, use <code>exit</code> to quit from the mongodb prompt.</p>
+</li>
+<li><p>Delete your mongodb container and volume:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container rm -f mongoserv
+PS: node-0 Administrator&gt; docker volume rm mongodata
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>Whenever data needs to live longer than the lifecycle of a container, it should be pushed out to a volume outside the container&#39;s filesystem; numerous popular databases are containerized using this pattern.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

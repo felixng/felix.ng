@@ -1,0 +1,145 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="updating-a-service">Updating a Service</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Update a swarm service&#39;s underlying image, controlling update parallelism, speed, and rollback contingencies</li>
+</ul>
+<h2 id="creating-rolling-updates">Creating Rolling Updates</h2>
+<ol>
+<li><p>First, let&#39;s change one of our services a bit: open <code>orchestration-workshop-net/worker/Program.cs</code> in your favorite text editor, and find the following section:</p>
+<pre><code class="lang-java">private static void WorkOnce(){
+    Console.WriteLine(&quot;Doing one unit of work&quot;);
+    Thread.Sleep(100);  // 100 ms
+</code></pre>
+<p>Change the <code>100</code> to a <code>10</code>. Save the file, exit the text editor. </p>
+</li>
+<li><p>Rebuild the worker image with a tag of <code>&lt;Docker ID&gt;/dc_worker:1.1</code>, and push it to Docker Hub.</p>
+</li>
+<li><p>Start the update:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker service update dc_worker `
+    --image &lt;Docker ID&gt;/dc_worker:1.1
+</code></pre>
+<p>Tasks get updated to our new 1.1 image one at a time. Keep watching until all of your workers have been updated to the new image version.</p>
+</li>
+</ol>
+<h2 id="parallelizing-updates">Parallelizing Updates</h2>
+<ol>
+<li><p>We can also set our updates to run in batches by configuring some options associated with each service. Change the update parallelism to 2 and the delay to 5 seconds on the <code>worker</code> service by editing its definition in <code>stack.yml</code>:</p>
+<pre><code class="lang-yaml">worker:
+  image: training/dc_worker:1.0
+  networks:
+    - dockercoins
+  deploy:
+    endpoint_mode: dnsrr
+    replicas: 10
+    update_config:
+      parallelism: 2
+      delay: 5s
+</code></pre>
+</li>
+<li><p>Roll back the worker service to 1.0:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker stack deploy -c &#39;stack.yml&#39; dc
+</code></pre>
+<p>Run <code>docker service ps dc_worker</code> every couple of seconds, as above; you should see pairs of worker tasks getting shut down and replaced with the 1.0 version, with a 5 second delay between updates (this is perhaps easiest to notice by examining the <code>NAME</code> column - every worker replica will start with one dead task from when you upgraded in the last step; you should be able to notice pairs of tasks with two dead ancestors as this rollback moves through the list, two at a time).</p>
+</li>
+</ol>
+<h2 id="auto-rollback-failed-updates">Auto-Rollback Failed Updates</h2>
+<p>In the event of an application or container failure on deployment, we&#39;d like to automatically roll the update back to the previous version.</p>
+<ol>
+<li><p>Update the <code>worker</code> service, this time from the CLI, with some parameters to define rollback:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker service update `
+    --update-max-failure-ratio=0.2 `
+    --update-monitor=20s `
+    --update-failure-action=rollback `
+    dc_worker
+</code></pre>
+<p>These parameters will trigger a rollback if more than 20% of services tasks fail in the first 20 seconds after an update.</p>
+</li>
+<li><p>Make a broken version of the <code>worker</code> service to trigger a rollback with; try removing all the <code>using</code> commands at the top of <code>worker/Program.cs</code>, for example. Then rebuild the worker image with a tag <code>&lt;Docker ID&gt;/dc_worker:bugged</code>, push it to Docker Hub, and attempt to update your service:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker image build `
+    -t &lt;Docker ID&gt;/dc_worker:bugged worker
+PS: node-0 orchestration-workshop-net&gt; docker image push `
+    &lt;Docker ID&gt;/dc_worker:bugged
+PS: node-0 orchestration-workshop-net&gt; docker service update dc_worker `
+    --image &lt;Docker ID&gt;/dc_worker:bugged
+</code></pre>
+</li>
+<li><p>Several worker tasks should attempt to update to the <code>:bugged</code> image, but after enough of these updates fail, the update is halted and rolled back to the previous version of the image automatically:</p>
+<pre><code class="lang-powershell">PS: node-0 worker&gt;docker service update dc_worker --image training/dc_worker:bugged
+dc_worker
+overall progress: rolling back update: 0 out of 10 tasks
+1/10: starting  [============================================&gt;      ]
+2/10: ready     [======================================&gt;            ]
+3/10: ready     [===========&gt;                                       ]
+4/10: ready     [======================================&gt;            ]
+5/10: ready     [======================================&gt;            ]
+6/10: ready     [===========&gt;                                       ]
+7/10: starting  [============================================&gt;      ]
+8/10: ready     [===========&gt;                                       ]
+9/10: assigned  [===========================&gt;                       ]
+10/10: running   [==================================================&gt;]
+rollback: update rolled back due to failure or early termination of task potgxcb3mhxvsq04hrsbfrviz
+</code></pre>
+</li>
+<li><p>Finally, do <code>docker service ps dc_worker</code> one last time to see the results of the rollback:</p>
+<pre><code class="lang-powershell">PS: node-0 worker&gt;docker service ps dc_worker
+
+ID                  NAME                IMAGE                       ...  DESIRED STATE       CURRENT STATE
+b11oaafcp8by        dc_worker.1         training/dc_worker:1.0      ...  Running             Running 21 seconds ago
+zn75m2i3ej9w         \_ dc_worker.1     training/dc_worker:bugged   ...  Shutdown            Failed 33 seconds ago
+hiuj9nbcqu4g         \_ dc_worker.1     training/dc_worker:bugged   ...  Shutdown            Failed about a minute ago
+m9vw8eabc8oa         \_ dc_worker.1     training/dc_worker:bugged   ...  Shutdown            Failed about a minute ago
+1ne2992nbfq0         \_ dc_worker.1     training/dc_worker:bugged   ...  Shutdown            Failed about a minute ago
+l5q8tu7hkaoi        dc_worker.2         training/dc_worker:1.0      ...  Running             Running 34 seconds ago
+yn6syswiw964         \_ dc_worker.2     training/dc_worker:bugged   ...  Shutdown            Failed 45 seconds ago
+3dpphwi4ipqz         \_ dc_worker.2     training/dc_worker:bugged   ...  Shutdown            Failed about a minute ago
+kjey2u5pi07z         \_ dc_worker.2     training/dc_worker:1.0      ...  Shutdown            Shutdown about a minute ago
+8u6nabylcwc9         \_ dc_worker.2     training/dc_worker:1.1      ...  Shutdown            Shutdown 5 minutes ago
+</code></pre>
+<p>The failed deployment of <code>:bugged</code> images has been rolled back to the previous <code>:1.0</code> image.</p>
+</li>
+</ol>
+<h2 id="shutting-down-a-stack">Shutting Down a Stack</h2>
+<ol>
+<li><p>To shut down a running stack:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker stack rm &lt;stack name&gt;
+</code></pre>
+<p>Where the stack name can be found in the output of <code>docker stack ls</code>.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, we explored deploying and redeploying an application as stacks and services. Note that relaunching a running stack updates all the objects it manages in the most non-disruptive way possible; there is usually no need to remove a stack before updating it. In production, rollback contingencies should always be used to cautiously upgrade images, cutting off potential damage before an entire service is taken down.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

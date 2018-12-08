@@ -1,0 +1,131 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="scaling-and-scheduling-services">Scaling and Scheduling Services</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Define the desired number of containers running as part of a service via the <code>deploy</code> block in a docker compose file</li>
+<li>Schedule services in replicated mode to ensure exactly one replica runs on every node in your swarm</li>
+</ul>
+<h2 id="scaling-up-a-service">Scaling up a Service</h2>
+<p>If we&#39;ve written our services to be stateless, we might hope for linear performance scaling in the number of replicas of that service. For example, our <code>worker</code> service requests a random number from the <code>rng</code> service and hands it off to the <code>hasher</code> service; the faster we make those requests, the higher our throughput of dockercoins should be, as long as there are no other confounding bottlenecks.</p>
+<ol>
+<li><p>Modify the <code>worker</code> service definition in <code>stack.yml</code> to set the number of replicas to create using the <code>replicas</code> key:</p>
+<pre><code class="lang-yaml">worker:
+  image: training/dc_worker:1.0
+  networks:
+    - dockercoins
+  deploy:
+    endpoint_mode: dnsrr
+    replicas: 2
+</code></pre>
+</li>
+<li><p>Update your app by running the same command you used to launch it in the first place, and check to see when your new worker replica is up and running:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker stack deploy -c &#39;stack.yml&#39; dc
+PS: node-0 orchestration-workshop-net&gt; docker service ps dc_worker
+</code></pre>
+</li>
+<li><p>Once both replicas of the <code>worker</code> service are live, check the web frontend; you should see about double the number of hashes per second, as expected.</p>
+</li>
+<li><p>Scale up even more by changing the <code>worker</code> replicas to 10. A small improvement should be visible, but certainly not an additional factor of 5. Something else is bottlenecking dockercoins.</p>
+</li>
+</ol>
+<h2 id="scheduling-services">Scheduling Services</h2>
+<p>Something other than <code>worker</code> is bottlenecking dockercoins&#39;s performance; the first place to look is in the services that <code>worker</code> directly interacts with.</p>
+<ol>
+<li><p>First, we need to expose ports for the <code>rng</code> and <code>hasher</code> services on their hosts, so we can probe their latency. Update their definitions in <code>stack.yml</code> with a <code>ports</code> key:</p>
+<pre><code class="lang-yaml">rng:
+  image: training/dc_rng:1.0
+  networks:
+    - dockercoins
+  deploy:
+    endpoint_mode: dnsrr
+  ports:
+    - target: 80
+      published: 8001
+      mode: host    
+
+hasher:
+  image: training/dc_hasher:1.0
+  networks:
+    - dockercoins
+  deploy:
+    endpoint_mode: dnsrr
+  ports:
+    - target: 80
+      published: 8002
+      mode: host
+</code></pre>
+<p>Update the services by redeploying the stack file:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker stack deploy -c &#39;stack.yml&#39; dc
+</code></pre>
+<p>If this is successful, a <code>docker stack ps dc</code> should show <code>rng</code> and <code>hasher</code> exposed on the appropriate ports.</p>
+</li>
+<li><p>Check your Dockercoins web frontend. You may find that your mining speed has dropped to zero! When you reconfigured and rescheduled your <code>rng</code> and <code>hasher</code> services, their containers may have received new IPs. If <code>worker</code> doesn&#39;t re-check what IPs the DNS entries <code>rng</code> and <code>hasher</code> are meant to resolve to, it can end up trying to send traffic to dead containers after such a reschedule. Long term, we should update our application logic to be smart about re-polling IPs, but for now we can force a re-poll by scaling our worker service down and up again:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker service scale dc_worker=0
+PS: node-0 orchestration-workshop-net&gt; docker service scale dc_worker=10
+</code></pre>
+<p>Double check your web frontend to make sure your mining speed is what it was before you rescheduled <code>rng</code> and <code>hasher</code>.</p>
+</li>
+<li><p>With <code>rng</code> and <code>hasher</code> exposed, we can use <code>httping</code> to probe their latency; in both cases, <code>&lt;public IP&gt;</code> is the public IP of the nodes exposing <code>rng</code> on 8001 and <code>hasher</code> on 8002, respectively:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; httping -c 5 &lt;public IP&gt;:8001
+PS: node-0 orchestration-workshop-net&gt; httping -c 5 &lt;public IP&gt;:8002
+</code></pre>
+<p><code>rng</code> is much slower to respond, suggesting that it might be the bottleneck. If this random number generator is based on an entropy collector (random voltage microfluctuations in the machine&#39;s power supply, for example), it won&#39;t be able to generate random numbers beyond a physically limited rate; we need more machines collecting more entropy in order to scale this up. This is a case where it makes sense to run exactly one copy of this service per machine, via <code>global</code> scheduling (as opposed to potentially many copies on one machine, or whatever the scheduler decides as in the default <code>replicated</code> scheduling).</p>
+</li>
+<li><p>Modify the definition of our <code>rng</code> service in <code>stack.yml</code> to be globally scheduled:</p>
+<pre><code class="lang-yaml">rng:
+  image: training/dc_rng:1.0
+  networks:
+    - dockercoins
+  deploy:
+    endpoint_mode: dnsrr
+    mode: global
+  ports:
+    - target: 80
+      published: 8001
+      mode: host
+</code></pre>
+</li>
+<li><p>Scheduling can&#39;t be changed on the fly, so we need to stop our app and restart it:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker stack rm dc
+PS: node-0 orchestration-workshop-net&gt; docker stack deploy -c=&#39;stack.yml&#39; dc
+</code></pre>
+</li>
+<li><p>Check the web frontend again (note it may be on a different node); you may still not see much improvement in overall performance, depending on how worker traffic is getting distributed across random number generators. Try scaling your worker service down to one replica and then back up to ten, and you should finally see the factor of 10 improvement in performance versus a single worker container, from 3-4 coins per second to around 35.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, you explored the performance gains a distributed application can enjoy by scaling a key service up to have more replicas, and by correctly scheduling a service that needs to be replicated across different hosts. Also, bear in mind the behavior of DNSRR service name resolution; it&#39;s up to your application logic to periodically check the list of IPs being returned by the DNS lookup, and rebalance traffic across new instances as those services scale up (or down). Alternatively, rescaling the service originating the request can cause that service&#39;s replicas to rebalance their requests across the new replicas of the destination service. </p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

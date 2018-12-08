@@ -1,0 +1,110 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="routing-traffic-to-docker-services">Routing Traffic to Docker Services</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Route traffic to a Docker service from within the swarm using dnsrr DNS lookups</li>
+<li>Route traffic to a Docker service from outside the swarm using host port publishing</li>
+</ul>
+<h2 id="configuring-an-internally-routable-service">Configuring an Internally Routable Service</h2>
+<ol>
+<li><p>Create an overlay network <code>my_overlay</code>, or use the one you created in the last exercise.</p>
+</li>
+<li><p>Create a service out of the <code>training/whoami-windows:latest</code> image; containers created from this image will respond with their container ID when receiving a web request on their port 5000.</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker service create --name whoami `
+    --replicas=4 --network my_overlay `
+    --endpoint-mode dnsrr `
+    training/whoami-windows:latest
+</code></pre>
+</li>
+<li><p>Create another service attached to the same network, which we&#39;ll use to attempt to communicate with your first service:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker service create --name pinger `
+    --network my_overlay --replicas=4 `
+    microsoft/nanoserver ping 8.8.8.8 -t
+</code></pre>
+</li>
+<li><p>Launch a powershell in one of your <code>pinger</code> containers (it doesn&#39;t matter which one or on which node). Then, probe DNS resolution for your <code>whoami</code> service:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container exec -it &lt;container ID&gt; powershell
+PS C:\&gt; Resolve-DnsName -Name whoami
+
+Name     Type   TTL   Section    IPAddress
+----     ----   ---   -------    ---------
+whoami   A      600   Answer     10.0.0.29
+whoami   A      600   Answer     10.0.0.31
+whoami   A      600   Answer     10.0.0.30
+whoami   A      600   Answer     10.0.0.27
+</code></pre>
+<p>By launching the <code>whoami</code> service with the flag <code>--endpoint-mode dnsrr</code>, a DNS lookup on the service name <code>whoami</code> returns all the A-records corresponding to that service name, one for each replica of that service.</p>
+</li>
+<li><p>Try contacting a few of your <code>whoami</code> containers using the IPs you found above:</p>
+<pre><code class="lang-powershell">PS C:\&gt; (Invoke-WebRequest http://&lt;container IP&gt;:5000).Content
+
+I am 02FF20A20861
+</code></pre>
+</li>
+<li><p>Try doing the same to resolve the DNS entry <code>pinger</code>:</p>
+<pre><code class="lang-powershell">PS C:\&gt; Resolve-DnsName -Name pinger
+
+Name     Type   TTL   Section    IPAddress
+----     ----   ---   -------    ---------
+pinger   A      600   Answer     10.0.0.32
+</code></pre>
+<p>The <code>pinger</code> service wasn&#39;t started with the <code>--endpoint-mode dnsrr</code> flag, so its DNS resolution defaults to <code>vip</code>, or the Virtual IP of the service as a whole (not of individual containers like we got for the <code>whoami</code> service). On Windows Server 1709+ (semi-annual Server channel), requests to a virtual IP such as this get load balanced by Docker to the containers managed by that service; this functionality is not available in Windows Server 2016, but is expected in Windows Server 2019.</p>
+</li>
+<li><p>Exit your container, and use <code>docker service inspect pinger</code> to confirm the single IP the DNS entry <code>pinger</code> resolved to is the virtual IP of the pinger service, and use <code>docker container inspect</code> on your <code>whoami</code> containers to confirm their IPs match the IPs returned in the DNS lookup above.</p>
+</li>
+</ol>
+<h2 id="configuring-an-externally-routable-service">Configuring an Externally Routable Service</h2>
+<ol>
+<li><p>Start a service using <em>host mode port publishing</em>: </p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker service create --name iis --replicas=4 `
+    --publish mode=host,target=80 `
+    microsoft/iis
+</code></pre>
+<p>This will map port 80 inside each container managed by this service onto a random available port on the host, so traffic from the outside network can be forwarded to your containerized application.</p>
+</li>
+<li><p>Do <code>docker container ls</code> on a node that has one of these <code>iis</code> containers running on it. Under the <code>PORTS</code> column in the resulting table, you should see something like <code>0.0.0.0:20931-&gt;80/tcp</code>; in this case, Docker is forwarding traffic from the host port&#39;s 20931 to the container&#39;s port 80. Try visiting the iis landing page in your browser at <public IP of this node>:<host port>, and confirm that your containerized website is reachable.</p>
+</li>
+</ol>
+<h2 id="cleaning-up">Cleaning up</h2>
+<ol>
+<li><p>Remove all existing services, in preparation for future exercises:</p>
+<pre><code class="lang-bash">PS: node-0 Administrator&gt; docker service rm $(docker service ls -q)
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, we&#39;ve explored the two main ways traffic gets routed to containerized applications on Windows: internal to the cluster, dnsrr routing resolves service names to a list of IPs of corresponding containers; it&#39;s up to you to load balance across these, and periodically check whether the list has changes (due to rescheduled containers or rescaled services). External to the cluster, host mode publishing maps a random host port onto a specified container port; it&#39;s up to you to then point your load balancer at the hosts and ports your application is running on.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

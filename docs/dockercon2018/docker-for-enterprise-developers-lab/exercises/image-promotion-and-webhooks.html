@@ -1,0 +1,294 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="image-promotion-webhooks">Image Promotion &amp; Webhooks</h1>
+<ol>
+<li><p>For the following exercises define an environment variable with your Docker ID in your development machine:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ export USER_ID=&lt;your Docker Store ID&gt;
+</code></pre>
+</li>
+</ol>
+<h2 id="pre-requisites-">Pre-requisites:</h2>
+<ul>
+<li>UCP as described in <strong>Installing UCP</strong>.</li>
+<li>DTR as described in <strong>Installing DTR</strong>.</li>
+</ul>
+<h2 id="using-webhooks">Using Webhooks</h2>
+<p>In this exercise we will create a service that will be triggered by a Webhook defined in DTR.</p>
+<h3 id="creating-the-service">Creating the Service</h3>
+<p>First we will assemble a simple app that logs some information about POST requests received, before setting this up as a service and firing webhooks at it.</p>
+<ol>
+<li><p>On your development machine, open the file <code>dtr-ci-cd/webhooks/src/server.js</code>. It is a Node JS/Express JS API with a POST endpoint defined as follows:</p>
+<pre><code class="lang-javascript">...
+app.post(&#39;/&#39;,function(req,res){
+    var hostname = os.hostname();
+    console.log(&#39;Host: &#39;+hostname+&#39; got triggered with:&#39;);
+    console.log(&#39;  type:      &#39;+req.body.type);
+    console.log(&#39;  createdAt: &#39;+req.body.createdAt);
+    console.log(&#39;  contents:  &#39;+JSON.stringify(req.body.contents, null, 2));
+    console.log(&#39;------------------------&#39;);
+    console.log(&#39;Full body:   &#39;+JSON.stringify(req.body, null, 2));
+    res.send(&#39;OK&#39;);
+});
+...
+</code></pre>
+</li>
+<li><p>Open the file <code>dtr-ci-cd/webhooks/package.json</code>. It should contain:</p>
+<pre><code class="lang-json">{
+    &quot;name&quot;: &quot;WebhookSample&quot;,
+    &quot;version&quot;: &quot;1.0.0&quot;,
+    &quot;description&quot;: &quot;Demo app for Webhooks&quot;,
+    &quot;main&quot;: &quot;server.js&quot;,
+    &quot;scripts&quot;: {
+        &quot;start&quot;: &quot;node src/server.js&quot;,
+        &quot;test&quot;: &quot;echo \&quot;Error: no test specified\&quot; &amp;&amp; exit 1&quot;
+    },
+    &quot;dependencies&quot;: {
+        &quot;express&quot;: &quot;^4.14.1&quot;,
+        &quot;body-parser&quot;: &quot;^1.9.2&quot;
+    }
+}
+</code></pre>
+</li>
+<li><p>To the <code>Dockerfile</code> in the <code>dtr-ci-cd/webhooks</code> folder add the following instructions to build the container image:</p>
+<pre><code class="lang-dockerfile">FROM node:8-alpine
+
+# for edit-and-continue only
+RUN npm install nodemon -g
+
+RUN mkdir /app
+WORKDIR /app
+COPY package.json ./
+RUN npm install
+COPY ./src ./src
+EXPOSE 3000
+CMD [&quot;npm&quot;,&quot;start&quot;]
+</code></pre>
+</li>
+<li><p>To the file <code>docker-compose.yml</code> in the <code>dtr-ci-cd/webhooks</code> folder add:</p>
+<pre><code class="lang-yaml">version: &#39;3.1&#39;
+services:
+    sut:
+        build: .
+        volumes: 
+        - ./src:/app/src
+        ports:
+            - &quot;3000:3000&quot;
+        command:
+            nodemon ./src/server.js 0.0.0.0:3000
+</code></pre>
+<p>Gist: <a href="http://bit.ly/2Gg61SR">http://bit.ly/2Gg61SR</a></p>
+<p>note the use of <code>nodemon</code> as we saw before, to create an <strong>edit and continue</strong> experience if we want to manipulate our app while it&#39;s running in a container. Windows users, don&#39;t forget the additional <code>-L</code> flag if necessary.</p>
+</li>
+<li><p>Now run the app to test it:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/dtr-ci-cd/webhooks$ docker-compose up --build
+</code></pre>
+</li>
+<li><p>Use a REST client such as Postman (for Chrome) to send a POST request to <code>localhost:3000</code> with the following <code>body</code> (see below for <code>curl</code> equivalent):</p>
+<pre><code class="lang-json">{
+    &quot;type&quot;: &quot;PULL_IMAGE&quot;,
+    &quot;createdAt&quot;: &quot;2017-06-09T09:30:43&quot;,
+    &quot;contents&quot;: {
+        &quot;one&quot;: &quot;blah&quot;,
+        &quot;two&quot;: &quot;bla bla bla&quot;,
+        &quot;three&quot;: 1234
+    }
+}
+</code></pre>
+<p>Gist: <a href="http://bit.ly/2uDWIHP">http://bit.ly/2uDWIHP</a></p>
+<p>and a <code>header</code>:</p>
+<pre><code class="lang-bash">Content-Type: application/json
+</code></pre>
+<p><img src="../images/postman.png" alt="../images/postman.png">/</p>
+<p>To do the same thing via <code>curl</code>, place the above json in a file <code>payload.json</code> and do:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/dtr-ci-cd/webhooks$ curl -d @payload.json \
+    -H &quot;Content-Type:application/json&quot; localhost:3000
+</code></pre>
+<p>In the container log you should see something like this:</p>
+<pre><code class="lang-bash">Attaching to webhooks_sut_1
+sut_1  | [nodemon] 1.17.2
+sut_1  | [nodemon] to restart at any time, enter `rs`
+sut_1  | [nodemon] watching: *.*
+sut_1  | [nodemon] starting `node ./src/server.js 0.0.0.0:3000`
+sut_1  | Running at Port 3000
+sut_1  | Host: c76ea851f5f7 got triggered with:
+sut_1  |   type:      PULL_IMAGE
+sut_1  |   createdAt: 2017-06-09T09:30:43
+sut_1  |   contents:  {
+sut_1  |   &quot;one&quot;: &quot;blah&quot;,
+sut_1  |   &quot;two&quot;: &quot;bla bla bla&quot;,
+sut_1  |   &quot;three&quot;: 1234
+sut_1  | }
+sut_1  | ------------------------
+sut_1  | Full body:   {
+sut_1  |   &quot;type&quot;: &quot;PULL_IMAGE&quot;,
+sut_1  |   &quot;createdAt&quot;: &quot;2017-06-09T09:30:43&quot;,
+sut_1  |   &quot;contents&quot;: {
+sut_1  |     &quot;one&quot;: &quot;blah&quot;,
+sut_1  |     &quot;two&quot;: &quot;bla bla bla&quot;,
+sut_1  |     &quot;three&quot;: 1234
+sut_1  |   }
+sut_1  | }
+</code></pre>
+</li>
+<li><p>Now we want to build and push an image of this app, so we can pull it into our UCP cluster:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/dtr-ci-cd/webhooks$ docker image build \
+    -t ${USER_ID}/webhook-sample:1.0 .
+ubuntu@infra:~/ddev-labs/dtr-ci-cd/webhooks$ docker image push \
+    ${USER_ID}/webhook-sample:1.0
+</code></pre>
+<p>You might need to login to Docker Hub with <code>docker login</code> to be able to push your image.</p>
+</li>
+<li><p>On the UCP manager <code>ucp-manager</code>, run a service using the above image:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ export USER_ID=&lt;your Docker ID&gt;
+[centos@ucp-manager ~]$ docker service create --name webhook-sample \
+    --detach=false --publish 3000:3000 \
+    ${USER_ID}/webhook-sample:1.0
+</code></pre>
+</li>
+<li><p>Again use a REST client like <strong>Postman</strong> or <code>curl</code> to trigger the service with a test payload. This time we have to use the public IP address or DNS of any of our swarm nodes instead of <code>localhost</code>.</p>
+</li>
+<li><p>Back on one of the UCP manager nodes, analyze the log generated by the service:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker service logs webhook-sample
+</code></pre>
+<p>It should show the same sort of record as above; this service is now ready to receive webhooks from DTR.</p>
+</li>
+</ol>
+<h3 id="registering-the-webhook">Registering the Webhook</h3>
+<ol>
+<li><p>Login to your DTR (UI).</p>
+</li>
+<li><p>Create a repository <code>admin/webhook-sample</code>.</p>
+</li>
+<li><p>Navigate to the repository details and select the tab <strong>Webhooks</strong>.</p>
+</li>
+<li><p>Click the button <strong>New Webhook</strong>.</p>
+</li>
+<li><p>For <strong>NOTIFICATIONS TO RECEIVE</strong> select the value <strong>Tag pushed to repository</strong> and for <strong>WEBHOOK URL</strong> enter <code>http://&lt;UCP_FQDN&gt;:3000</code>.</p>
+</li>
+<li><p>Click the link <strong>Test</strong> and then check the service logs and find out whether or not the callback was successfully executed.</p>
+</li>
+<li><p>Click <strong>Save</strong> back on the webhook dialog to create the webhook.</p>
+</li>
+</ol>
+<h3 id="triggering-the-webhook">Triggering the Webhook</h3>
+<ol>
+<li><p>Pull an image from Docker Store:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker image pull centos:7
+</code></pre>
+</li>
+<li><p>Tag the image:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker image tag \
+    centos:7 ${DTR_FQDN}:4443/admin/webhook-sample:1.0
+</code></pre>
+</li>
+<li><p>Push the image to DTR:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker image push ${DTR_FQDN}:4443/admin/webhook-sample:1.0
+</code></pre>
+</li>
+<li><p>Now analyze the log of our <code>webhook-sample</code> service running in the swarm:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker service logs webhook-sample
+</code></pre>
+<p>You should see log entries indicating that DTR posted a webhook to the service, for example:</p>
+<pre><code class="lang-bash">webhook-sample.1.n7n35ci3ahun@node    | Host: deb12fb57621 got triggered with:
+webhook-sample.1.n7n35ci3ahun@node    |   type:      TAG_PUSH
+webhook-sample.1.n7n35ci3ahun@node    |   createdAt: 2017-07-18T19:04:35.240532079Z
+webhook-sample.1.n7n35ci3ahun@node    |   contents:  {
+webhook-sample.1.n7n35ci3ahun@node    |   &quot;namespace&quot;: &quot;admin&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |   &quot;repository&quot;: &quot;webhook-sample&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |   &quot;tag&quot;: &quot;1.0&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |   &quot;digest&quot;: &quot;sha256:89751557f508153f133a6f6750e87f871506c0ac76a245277bb7b677e7f65d79&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |   &quot;imageName&quot;: &quot;admin/webhook-sample:1.0&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |   &quot;os&quot;: &quot;linux&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |   &quot;architecture&quot;: &quot;amd64&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |   &quot;author&quot;: &quot;admin&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |   &quot;pushedAt&quot;: &quot;2017-07-18T19:04:35.213817243Z&quot;
+webhook-sample.1.n7n35ci3ahun@node    | }
+webhook-sample.1.n7n35ci3ahun@node    | ------------------------
+webhook-sample.1.n7n35ci3ahun@node    | Full body:   {
+webhook-sample.1.n7n35ci3ahun@node    |   &quot;type&quot;: &quot;TAG_PUSH&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |   &quot;createdAt&quot;: &quot;2017-07-18T19:04:35.240532079Z&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |   &quot;contents&quot;: {
+webhook-sample.1.n7n35ci3ahun@node    |     &quot;namespace&quot;: &quot;engineering&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |     &quot;repository&quot;: &quot;webhook-sample&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |     &quot;tag&quot;: &quot;1.0&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |     &quot;digest&quot;: &quot;sha256:89751557f508153f133a6f6750e87f871506c0ac76a245277bb7b677e7f65d79&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |     &quot;imageName&quot;: &quot;admin/webhook-sample:1.0&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |     &quot;os&quot;: &quot;linux&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |     &quot;architecture&quot;: &quot;amd64&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |     &quot;author&quot;: &quot;admin&quot;,
+webhook-sample.1.n7n35ci3ahun@node    |     &quot;pushedAt&quot;: &quot;2017-07-18T19:04:35.213817243Z&quot;
+webhook-sample.1.n7n35ci3ahun@node    |   },
+webhook-sample.1.n7n35ci3ahun@node    |   &quot;location&quot;: &quot;/repositories/admin/webhook-sample/tags/1.0&quot;
+webhook-sample.1.n7n35ci3ahun@node    | }
+</code></pre>
+<p>Metadata about the image push is posted to the address we specified in the webhook definition.</p>
+</li>
+</ol>
+<h2 id="configuring-image-promotion">Configuring Image Promotion</h2>
+<p>In addition to posting metadata triggered by events, DTR can also rename and / or re-tag an image based on similar events, in order to track its progress through your pipelines.</p>
+<ol>
+<li><p>In DTR create a repository <code>admin/webhook-sample-qa</code>.</p>
+</li>
+<li><p>Navigate to the repository <code>admin/webhook-sample</code> and select the tab <strong>Promotions</strong>.</p>
+</li>
+<li><p>Make sure <strong>Is Source</strong> is selected and click <strong>New promotion policy</strong>.</p>
+</li>
+<li><p>From the section <strong>PROMOTE TO TARGET IF...</strong> select <strong>Tag Name</strong>. Then select <strong>Tag name ends with</strong> and enter <code>-good</code> as value and click <strong>Add</strong>.</p>
+</li>
+<li><p>Select <code>admin/webhook-sample-qa</code> as <strong>TARGET REPOSITORY</strong>.</p>
+</li>
+<li><p>Enter <code>%n-QA</code> in <strong>TAG NAME IN TARGET</strong>.</p>
+</li>
+<li><p>Click <strong>Save and Apply</strong>.</p>
+<p><img src="../images/image-promotion.png" alt="Image Promotion">/</p>
+</li>
+<li><p>Tag an image such as that it will trigger promotion when pushed:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker image tag centos:7 \
+    ${DTR_FQDN}:4443/admin/webhook-sample:1.0-good
+</code></pre>
+</li>
+<li><p>Push the image:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker image push \
+    ${DTR_FQDN}:4443/admin/webhook-sample:1.0-good
+</code></pre>
+</li>
+<li><p>In DTR double check that the image has been stored in <code>admin/webhook-sample</code> and also been promoted to <code>admin/webhook-sample-qa</code>.</p>
+</li>
+<li><p>Optional: Configure a webhook for the repository <code>admin/webhook-sample-qa</code> and verify that it gets triggered when an image is promoted to this repo.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>Taken together, webhooks and image promotion allow us to use Docker Trusted Registry as the backbone of a CI/CD pipeline. As images are pushed to DTR by a build server, DTR can fire webhooks to kick off testing pipelines, and as images pass stages in that pipeline, they can be automatically re-tagged or renamed to clearly indicate to users the stage to which they have progressed in testing. It&#39;s even possible to promote, or &#39;mirror&#39;, an image from one DTR to another, so that once testing is complete, the final, production ready image can be promoted into a totally separate DTR reserved only for production.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

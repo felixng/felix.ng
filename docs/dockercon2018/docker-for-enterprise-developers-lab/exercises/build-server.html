@@ -1,0 +1,219 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="build-server">Build Server</h1>
+<p>In a typical Docker pipeline, a build agent will be responsible for pulling code and base images from their respective registries, building developers&#39; images, and pushing them to DTR to trigger a CI/CD pipeline. By the end of this exercise, you should be able to:</p>
+<ul>
+<li>configure a containerized Jenkins deployment to watch a GitHub repo and build images out of code pushed there</li>
+<li>automatically push Jenkins-built images to DTR, potentially kicking off scanning and promotions from there.</li>
+</ul>
+<p>A lot of information has been distilled from here: <a href="https://github.com/yongshin/leroy-jenkins">https://github.com/yongshin/leroy-jenkins</a>.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<ol>
+<li><p>Make sure all your UCP swarm nodes trust DTR, if you haven&#39;t already:</p>
+<pre><code class="lang-bash">[centos@ucp-x ~]$ DTR_FQDN=&lt;Public DNS DTR is reachable at&gt;
+[centos@ucp-x ~]$ sudo curl \
+    -k https://$DTR_FQDN:4443/ca \
+    -o /etc/pki/ca-trust/source/anchors/$DTR_FQDN:4443.crt
+[centos@ucp-x ~]$ sudo update-ca-trust
+[centos@ucp-x ~]$ sudo /bin/systemctl restart docker.service
+</code></pre>
+</li>
+</ol>
+<h2 id="creating-and-shipping-the-jenkins-image">Creating and Shipping the Jenkins Image</h2>
+<ol>
+<li><p>On <code>ucp-node-1</code>, create a folder <code>build-server/jenkins</code>.</p>
+</li>
+<li><p>Add a <code>Dockerfile</code> to the folder with this content:</p>
+<pre><code class="lang-bash">FROM jenkins:2.60.3
+USER root
+RUN apt-get update \
+ &amp;&amp; apt-get install -y \
+        apt-transport-https \
+        ca-certificates \
+        curl \
+        software-properties-common \
+ &amp;&amp; curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - \
+ &amp;&amp; add-apt-repository \
+        &quot;deb [arch=amd64] https://download.docker.com/linux/debian \
+        $(lsb_release -cs) \
+        stable&quot; \
+ &amp;&amp; apt-get update \
+ &amp;&amp; apt-get install -y docker-ce sudo \
+ &amp;&amp; rm -rf /var/lib/apt/lists/*
+RUN echo &quot;jenkins ALL=NOPASSWD: ALL&quot; &gt;&gt; /etc/sudoers
+COPY entrypoint.sh /
+ENTRYPOINT /entrypoint.sh
+</code></pre>
+<p>we&#39;re using the base Jenkins image, and adding Docker CE and a few other libraries to it.</p>
+</li>
+<li><p>Add a file <code>entrypoint.sh</code> to the same folder with the following content:</p>
+<pre><code class="lang-bash">openssl s_client -connect ${DTR_IP}:443 -showcerts \
+    &lt;/dev/null 2&gt;/dev/null | openssl x509 -outform PEM | sudo tee \
+    /usr/local/share/ca-certificates/${DTR_IP}.crt
+sudo update-ca-certificates
+
+/bin/tini -- /usr/local/bin/jenkins.sh
+</code></pre>
+</li>
+<li><p>Make the above file executable:</p>
+<pre><code class="lang-bash">[centos@ucp-node-1 jenkins]$ chmod +x ./entrypoint.sh
+</code></pre>
+</li>
+<li><p>Build the image, and push to DTR:</p>
+<pre><code class="lang-bash">[centos@ucp-node-1 jenkins]$ DTR_FQDN=&lt;Public DNS DTR is reachable at&gt;
+[centos@ucp-node-1 jenkins]$ docker image build \
+    -t ${DTR_FQDN}:4443/admin/my-jenkins:1.0 .
+[centos@ucp-node-1 jenkins]$ docker image push ${DTR_FQDN}:4443/admin/my-jenkins:1.0
+</code></pre>
+</li>
+</ol>
+<h2 id="preparing-the-repository-in-dtr">Preparing the Repository in DTR</h2>
+<ol>
+<li><p>Login to your DTR as <code>admin</code>.</p>
+</li>
+<li><p>Create a public repo called <code>admin/jenkins-demo</code>. This is where Jenkins will push built images to.</p>
+</li>
+</ol>
+<h2 id="preparing-a-source-repo">Preparing a Source Repo</h2>
+<ol>
+<li><p>Log in to GitHub, and create a public repo called <code>jenkins-demo</code>. This is where the code describing your image will be controlled.</p>
+</li>
+<li><p>On your local machine or <code>infra</code> node, make a fresh folder called <code>~/jenkins-demo</code>, and add a Dockerfile to it describing an image you&#39;re developing (feel free to just use the Dockerfile and entrypoint.sh defined above for the Jenkins image itself if you like).</p>
+</li>
+<li><p>Set this code up to push, but <em>don&#39;t</em> push yet:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ cd jenkins-demo
+ubuntu@infra:~/jenkins-demo$ git init
+ubuntu@infra:~/jenkins-demo$ git remote add origin &lt;your jenkins-demo GitHub repo url&gt;
+ubuntu@infra:~/jenkins-demo$ git add *
+ubuntu@infra:~/jenkins-demo$ git commit -m &#39;code ready for pipeline testing&#39;
+</code></pre>
+</li>
+</ol>
+<h2 id="running-jenkins-in-the-swarm">Running Jenkins in the Swarm</h2>
+<h3 id="preparing-the-swarm-node">Preparing the Swarm Node</h3>
+<ol>
+<li><p>SSH into the swarm node <code>ucp-node-1</code> where we&#39;ll run Jenkins.</p>
+</li>
+<li><p>Create a directory <code>~/jenkins</code> and a directory <code>~/admincerts</code>:</p>
+<pre><code class="lang-bash">[centos@ucp-node-1 ~]$ mkdir jenkins
+[centos@ucp-node-1 ~]$ mkdir admincerts
+</code></pre>
+</li>
+<li><p>Create an auth token to use UCP&#39;s API from <code>ucp-node-1</code>:</p>
+<pre><code class="lang-bash">[centos@ucp-node-1 ~]$ UCP_FQDN=&lt;Public DNS UCP is reachable at&gt;
+[centos@ucp-node-1 ~]$ AUTHTOKEN=$(curl -sk \
+    -d &#39;{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;adminadmin&quot;}&#39; \
+    https://${UCP_FQDN}/auth/login | jq -r .auth_token)
+</code></pre>
+</li>
+<li><p>Download and unzip a client bundle for your admin account:</p>
+<pre><code class="lang-bash">[centos@ucp-node-1 ~]$ cd admincerts
+[centos@ucp-node-1 admincerts]$ curl -k -H &quot;Authorization: Bearer $AUTHTOKEN&quot; \
+    https://${UCP_FQDN}/api/clientbundle -o bundle.zip
+[centos@ucp-node-1 admincerts]$ unzip bundle.zip
+</code></pre>
+</li>
+<li><p>Run the shell configuration script which is part of the bundle:</p>
+<pre><code class="lang-bash">[centos@ucp-node-1 admincerts]$ eval &quot;$(&lt;env.sh)&quot;
+</code></pre>
+</li>
+</ol>
+<h3 id="creating-the-jenkins-service">Creating the Jenkins Service</h3>
+<ol>
+<li><p>SSH into <code>ucp-manager</code>.</p>
+</li>
+<li><p>Label <code>ucp-node-1</code> for Jenkins so we can use scheduling constraints to place the Jenkins master on that node:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker node update --label-add jenkins=master ucp-node-1
+</code></pre>
+</li>
+<li><p>Run a service for Jenkins:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ export DTR_FQDN=&lt;public DNS DTR is reachable at&gt;
+[centos@ucp-manager ~]$ docker service create \
+    --name my-jenkins --publish 8080:8080 \
+    --mount type=bind,source=/var/run/docker.sock,destination=/var/run/docker.sock \
+    --mount type=bind,source=/home/centos/jenkins,destination=/var/jenkins_home \
+    --mount \
+    type=bind,source=/home/centos/admincerts,destination=/home/jenkins/admincerts \
+    --constraint &#39;node.labels.jenkins == master&#39; \
+    --detach=false \
+    -e DTR_IP=${DTR_FQDN} \
+    ${DTR_FQDN}:4443/admin/my-jenkins:1.0
+</code></pre>
+</li>
+<li><p>Verify that the service is up and running using e.g.:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker service ps my-jenkins
+</code></pre>
+</li>
+</ol>
+<h3 id="finalizing-the-jenkins-configuration">Finalizing the Jenkins Configuration</h3>
+<ol>
+<li><p>Open a browser window and navigate to Jenkins at <code>http://&lt;any UCP public IP&gt;:8080</code></p>
+</li>
+<li><p>Enter the initial password that you can get on <code>ucp-node-1</code> by entering this command:</p>
+<pre><code class="lang-bash">[centos@ucp-node-1 ~]$ sudo cat ~/jenkins/secrets/initialAdminPassword
+</code></pre>
+</li>
+<li><p>Install the suggested plugins from the inital popup window, create your admin account and click <strong>Continue as Admin -&gt; Start Using Jenkins</strong>.</p>
+</li>
+</ol>
+<h2 id="configuring-jenkins-jobs">Configuring Jenkins Jobs</h2>
+<ol>
+<li><p>Login to Jenkins if not already done.</p>
+</li>
+<li><p>Create a Jenkins Job of type <strong>Free Style</strong> and call it <strong>docker build and push</strong>.</p>
+</li>
+<li><p>In <strong>Source Code Management -&gt; Git</strong> - set repository to the url of the <code>jenkins-demo</code> GitHub repo you created above.</p>
+</li>
+<li><p>Set Build Triggers -&gt; Poll SCM, and enter <code>* * * * *</code> in the &#39;Schedule&#39; field, to poll for code changes every minute. See <a href="https://en.wikipedia.org/wiki/Cron">https://en.wikipedia.org/wiki/Cron</a> for an explanation of this scheduling syntax.</p>
+</li>
+<li><p>Add a Build Step of type <strong>Execute Shell</strong> and add the following script (remember to replace <code>&lt;DTR FQDN&gt;</code> with the public DNS you&#39;re reaching DTR at):</p>
+<pre><code class="lang-bash">#!/bin/bash
+export DTR_FQDN=&lt;DTR FQDN&gt;
+docker image build -t ${DTR_FQDN}:4443/admin/jenkins-demo .
+docker image tag \
+    ${DTR_FQDN}:4443/admin/jenkins-demo \
+    ${DTR_FQDN}:4443/admin/jenkins-demo:1.${BUILD_NUMBER}
+docker login -u admin -p adminadmin ${DTR_FQDN}:4443
+docker image push ${DTR_FQDN}:4443/admin/jenkins-demo:1.${BUILD_NUMBER}
+</code></pre>
+</li>
+<li><p>Save the job.</p>
+</li>
+<li><p>Back on your development machine, push your <code>jenkins-demo</code> code to GitHub (<code>git push origin master</code> in the <code>jenkins-demo</code> folder). Wait a minute, and SCM polling in Jenkins will trigger a build and push your new image to DTR when complete.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise we set up a containerized Jenkins build server that ingests code from a version control repository, and pushes built images into Docker Trusted Registry. From this point, you can configure DTR to scan images for vulnerabilities, promote them to new repositories, and trigger webhooks to external services at each step.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

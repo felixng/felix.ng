@@ -1,0 +1,87 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="starting-a-compose-app">Starting a Compose App</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Read a basic docker compose yaml file and understand what components it is declaring</li>
+<li>Start, stop, and inspect the logs of an application defined by a docker compose file</li>
+</ul>
+<h2 id="preparing-service-images">Preparing Service Images</h2>
+<ol>
+<li><p>Download the Dockercoins app from github:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; git clone -b ee2.1 `
+    https://github.com/docker-training/orchestration-workshop-net.git
+PS: node-0 Administrator&gt; cd orchestration-workshop-net
+</code></pre>
+<p>This app consists of 5 services: a random number generator <code>rng</code>, a <code>hasher</code>, a backend <code>worker</code>, a <code>redis</code> queue, and a <code>web</code> frontend; the code you just downloaded has the source code for each process and a Dockerfile to containerize each of them.</p>
+</li>
+<li><p>Have a brief look at the source for each component of your application. Each folder under <code>~/orchestration-workshop-net/</code> contains the application logic for the component, and a Dockerfile for building that logic into a Docker image. We&#39;ve pre-built these images as <code>training/dc_rng:1.0</code>, <code>training/dc_worker:1.0</code> et cetera, so no need to build them yourself.</p>
+</li>
+<li><p>Have a look in <code>docker-compose.yml</code>; especially notice the <code>services</code> section. Each block here defines a different Docker service. They each have exactly one image which containers for this service will be started from, as well as other configuration details like network connections and port exposures. Full syntax for Docker Compose files can be found here: <a href="https://dockr.ly/2iHUpeX">https://dockr.ly/2iHUpeX</a>.</p>
+</li>
+</ol>
+<h2 id="starting-the-app">Starting the App</h2>
+<ol>
+<li><p>Stand up the app:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker-compose up
+</code></pre>
+<p>After a moment, your app should be running; visit <code>&lt;node 0 public IP&gt;:8000</code> to see the web frontend visualizing your rate of Dockercoin mining.</p>
+</li>
+<li><p>Logs from all the running services are sent to STDOUT. Let&#39;s send this to the background instead; kill the app with <code>CTRL+C</code>, and start the app again in the background:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker-compose up -d
+</code></pre>
+</li>
+<li><p>Check out which containers are running thanks to Compose:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker-compose ps
+
+               Name                              Command               State          Ports
+---------------------------------------------------------------------------------------------------
+orchestration-workshop-net_hasher_1   dotnet run                       Up      0.0.0.0:8002-&gt;80/tcp
+orchestration-workshop-net_redis_1    redis-server.exe C:\Redis\ ...   Up      6379/tcp
+orchestration-workshop-net_rng_1      dotnet run                       Up      0.0.0.0:8001-&gt;80/tcp
+orchestration-workshop-net_webui_1    node webui.js                    Up      0.0.0.0:8000-&gt;80/tcp
+orchestration-workshop-net_worker_1   dotnet run                       Up
+</code></pre>
+</li>
+<li><p>Compare this to the usual <code>docker container ls</code>; do you notice any differences? If not, start a couple of extra containers using <code>docker container run...</code>, and check again.</p>
+</li>
+<li><p>See logs from a Compose-managed app via:</p>
+<pre><code class="lang-bash">PS: node-0 orchestration-workshop-net&gt; docker-compose logs
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, you saw how to start a pre-defined Compose app, and how to inspect its logs. Application logic was defined in each of the five images we used to create containers for the app, but the manner in which those containers were created was defined in the <code>docker-compose.yml</code> file; all runtime configuration for each container is captured in this manifest. Finally, the different elements of Dockercoins communicated with each other via service name; the Docker daemon&#39;s internal DNS was able to resolve traffic destined for a service, into the IP or MAC address of the corresponding container.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

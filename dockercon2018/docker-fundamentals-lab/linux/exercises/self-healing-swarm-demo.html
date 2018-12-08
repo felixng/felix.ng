@@ -1,0 +1,158 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="instructor-demo-self-healing-swarm">Instructor Demo: Self-Healing Swarm</h1>
+<p>In this demo, we&#39;ll illustrate:</p>
+<ul>
+<li>Setting up a swarm</li>
+<li>How swarm makes basic scheduling decisions</li>
+<li>Actions swarm takes to self-heal a docker service</li>
+</ul>
+<h2 id="setting-up-a-swarm">Setting Up a Swarm</h2>
+<ol>
+<li><p>Start by making sure no containers are running on any of your nodes:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker container rm -f $(docker container ls -aq)
+[centos@node-1 ~]$ docker container rm -f $(docker container ls -aq)
+[centos@node-2 ~]$ docker container rm -f $(docker container ls -aq)
+[centos@node-3 ~]$ docker container rm -f $(docker container ls -aq)
+</code></pre>
+</li>
+<li><p>Initialize a swarm on one node:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker swarm init
+
+Swarm initialized: current node (xyz) is now a manager.
+
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-0s96... 10.10.1.40:2377
+
+To add a manager to this swarm, run &#39;docker swarm join-token manager&#39; and follow the instructions.
+</code></pre>
+</li>
+<li><p>List the nodes in your swarm:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker node ls
+
+ID      HOSTNAME   STATUS   AVAILABILITY   MANAGER STATUS
+xyz *   node-0     Ready    Active         Leader
+</code></pre>
+</li>
+<li><p>Add some workers to your swarm by cutting and pasting the <code>docker swarm join...</code> token Docker provided in step 2 above:</p>
+<pre><code class="lang-bash">[centos@node-1 ~]$ docker swarm join --token SWMTKN-1-0s96... 10.10.1.40:2377
+[centos@node-2 ~]$ docker swarm join --token SWMTKN-1-0s96... 10.10.1.40:2377
+[centos@node-3 ~]$ docker swarm join --token SWMTKN-1-0s96... 10.10.1.40:2377
+</code></pre>
+<p>Each node should report <code>This node joined a swarm as a worker.</code> after joining.</p>
+</li>
+<li><p>Back on your first node, list your swarm members again:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker node ls
+
+ID      HOSTNAME   STATUS   AVAILABILITY   MANAGER STATUS
+ghi     node-3     Ready    Active              
+def     node-2     Ready    Active              
+abc     node-1     Ready    Active              
+xyz *   node-0     Ready    Active         Leader
+</code></pre>
+<p>You have a four-member swarm, ready to accept workloads.</p>
+</li>
+</ol>
+<h2 id="scheduling-workload">Scheduling Workload</h2>
+<ol>
+<li><p>Create a service on your swarm:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service create \
+    --replicas 4 \
+    --name service-demo \
+    centos:7 ping 8.8.8.8
+</code></pre>
+</li>
+<li><p>List what processes have been started for your service:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service ps service-demo
+
+ID            NAME            IMAGE     NODE    DESIRED STATE  CURRENT STATE         
+g3dimc0nkoha  service-demo.1  centos:7  node-3  Running        Running 18 seconds ago
+e7d7sy5saqqo  service-demo.2  centos:7  node-0  Running        Running 18 seconds ago  
+wv0culf6w8m6  service-demo.3  centos:7  node-1  Running        Running 18 seconds ago    
+ty35gss71mpf  service-demo.4  centos:7  node-2  Running        Running 18 seconds ago
+</code></pre>
+<p>Our service has scheduled four tasks, one on each node in our cluster; by default, swarm tries to spread tasks out evenly across hosts, but much more sophisticated scheduling controls are also available.</p>
+</li>
+</ol>
+<h2 id="maintaining-desired-state">Maintaining Desired State</h2>
+<ol>
+<li><p>Connect to <code>node-1</code>, and list the containers running there:</p>
+<pre><code class="lang-bash">[centos@node-1 ~]$ docker container ls
+CONTAINER ID  IMAGE     COMMAND         CREATED        STATUS        NAMES
+5b5f77c67eff  centos:7  &quot;ping 8.8.8.8&quot;  4 minutes ago  Up 4 minutes  service-demo.3.wv0cul...
+</code></pre>
+<p>Note the container&#39;s name indicates the service it belongs to.</p>
+</li>
+<li><p>Let&#39;s simulate a container crash, by killing off this container:</p>
+<pre><code class="lang-bash">[centos@node-1 ~]$ docker container rm -f &lt;container ID&gt;
+</code></pre>
+<p>Back on our swarm manager, list the processes running for our <code>service-demo</code> service again:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service ps service-demo
+
+ID            NAME               IMAGE     NODE    DESIRED STATE  CURRENT STATE      
+g3dimc0nkoha  service-demo.1     centos:7  node-3  Running        Running 6 minutes ago   
+e7d7sy5saqqo  service-demo.2     centos:7  node-0  Running        Running 6 minutes ago      
+u7l8vf2hqw0z  service-demo.3     centos:7  node-1  Running        Running 3 seconds ago          
+wv0culf6w8m6  \_ service-demo.3  centos:7  node-1  Shutdown       Failed 3 seconds ago
+ty35gss71mpf  service-demo.4     centos:7  node-2  Running        Running 6 minutes ago
+</code></pre>
+<p>Swarm has automatically started a replacement container for the one you killed on <code>node-1</code>. Go back over to <code>node-1</code>, and do <code>docker container ls</code> again; you&#39;ll see a new container for this service up and running.</p>
+</li>
+<li><p>Next, let&#39;s simulate a complete node failure by rebooting one of our nodes:</p>
+<pre><code class="lang-bash">[centos@node-3 ~]$ sudo reboot now
+</code></pre>
+</li>
+<li><p>Back on your swarm manager, check your service containers again:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service ps service-demo
+ID            NAME               IMAGE     NODE    DESIRED STATE  CURRENT STATE
+ralm6irhj6vu  service-demo.1     centos:7  node-0  Running        Running 19 seconds ago
+g3dimc0nkoha  \_ service-demo.1  centos:7  node-3  Shutdown       Running 38 seconds ago     
+e7d7sy5saqqo  service-demo.2     centos:7  node-0  Running        Running 12 minutes ago
+u7l8vf2hqw0z  service-demo.3     centos:7  node-1  Running        Running 5 minutes ago
+wv0culf6w8m6  \_ service-demo.3  centos:7  node-1  Shutdown       Failed 5 minutes ago
+ty35gss71mpf  service-demo.4     centos:7  node-2  Running        Running 12 minutes ago
+</code></pre>
+<p>The process on <code>node-3</code> has been scheduled for <code>SHUTDOWN</code> when the swarm manager lost connection to that node, and meanwhile the workload has been rescheduled onto <code>node-0</code> in this case. When <code>node-3</code> comes back up and rejoins the swarm, its container will be confirmed to be in the <code>SHUTDOWN</code> state, and reconciliation is complete.</p>
+</li>
+<li><p>Remove your <code>service-demo</code>:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service rm service-demo
+</code></pre>
+<p>All tasks and containers will be removed.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>One of the great advantages of the portability of containers is that we can imagine orchestrators like Swarm which can schedule and re-schedule workloads across an entire datacenter, such that if a given node fails, all its workload can be automatically moved to another host with available resources. In the above example, we saw the most basic examples of this &#39;reconciliation loop&#39; that swarm provides: the swarm manager is constantly monitoring all the containers it has scheduled, and replaces them if they fail or their hosts become unreachable, completely automatically.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

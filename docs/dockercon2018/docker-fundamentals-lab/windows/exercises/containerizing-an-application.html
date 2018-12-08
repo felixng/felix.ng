@@ -1,0 +1,136 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="containerizing-an-application">Containerizing an Application</h1>
+<p>In this exercise, you&#39;ll be provided with the application logic of a simple three tier application; your job will be to write Dockerfiles to containerize each tier, and write a Docker Compose file to orchestrate the deployment of that app. This application serves a website that presents cat gifs pulled from a database. The tiers are as follows:</p>
+<ul>
+<li><strong>Database</strong>: Microsoft SQL Server</li>
+<li><strong>API</strong>: ASP.NET framework application</li>
+<li><strong>Frontend</strong>: ASP.NET core application</li>
+</ul>
+<p>Basic success means writing the Dockerfiles and docker-compose file needed to deploy this application to your orchestrator of choice; to go beyond this, think about minimizing image size, maximizing image performance, and making good choices regarding configuration management.</p>
+<p>Start by cloning the source code for this app:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; git clone -b ee2.1 `
+    https://github.com/docker-training/fundamentals-final-win.git
+</code></pre>
+<h2 id="containerizing-the-database">Containerizing the Database</h2>
+<ol>
+<li><p>Navigate to <code>fundamentals-final-win/database</code> to find the config for your database tier. </p>
+</li>
+<li><p>Begin writing a Dockerfile for your Microsoft SQL Server database image by choosing an appropriate base image. Your developers gave you the following information about stating up and configuring your database tier:</p>
+</li>
+<li><p>Your developers have provided you with SQL configuration file <code>init-db.sql</code> and startup script <code>start.ps1</code>. Both of these need to be present in <code>C:\</code>.</p>
+</li>
+<li><p>The database must be initialized by the command <code>powershell .\start -sa_password $env:sa_password -Verbose</code>. The <code>start.ps1</code> script expects two environment variables to be defined:</p>
+<ul>
+<li><code>ACCEPT_EULA</code> = <code>Y</code></li>
+<li><code>sa_password</code> = <code>P@ssw0rd</code> </li>
+</ul>
+</li>
+<li><p>Finish writing a Dockerfile to containerize your database tier, build the image as <code>mssql:dev</code>, and prove that things are working and configured correctly by standing up a container, connecting to it, and querying the database via <code>sqlcmd -d &#39;pets&#39; -Q &#39;select url from images;&#39;</code>. If successful, you should see URLs for 13 images returned. </p>
+</li>
+</ol>
+<h2 id="containerizing-the-api">Containerizing the API</h2>
+<ol>
+<li><p>Navigate to <code>fundamentals-final-win/api</code> to find the source and config for your api tier.</p>
+</li>
+<li><p>We&#39;d like to define separate build and execution environments for our API tier. Begin writing a Dockerfile for your API by choosing an appropriate base image for your <strong>build</strong> environment; your developers designed this API to be build in dotnet framework 4.7.1.</p>
+</li>
+<li><p>Your developers gave you the following further pieces of information about building your project:</p>
+<ul>
+<li>Everything should be built from the directory <code>\sln\api</code></li>
+<li>You&#39;ll need the <code>*.csproj</code> and <code>packages.config</code> from the provided source to install the dependencies for your build process</li>
+<li>Dependencies for your build process can be installed via:</li>
+</ul>
+<pre><code>PS C:\&gt; nuget restore -PackagesDirectory /sln/packages -Verbosity Detailed -NonInteractive
+PS C:\&gt; nuget install Microsoft.ApplicationInsights.Web -Version 2.2.0 -OutputDirectory /sln/packages;
+PS C:\&gt; nuget install Newtonsoft.Json -Version 6.0.4 -OutputDirectory /sln/packages;
+PS C:\&gt; nuget install Antlr -Version 3.4.1.9004 -OutputDirectory /sln/packages;
+</code></pre><ul>
+<li>You&#39;ll need everything else in the <code>fundamentals-final-win/api</code> to run the build process after the above dependencies are installed</li>
+<li>After everything is set up correctly, the API can be built via <code>msbuild /p:Configuration=Release</code>.</li>
+</ul>
+</li>
+<li><p>Finally, define an execution environment based on ASPNET 4.7.1 by copying everything in the <code>/sln/api</code> path in your build environment to the usual <code>/inetpub/wwwroot</code> in your execution environment.</p>
+</li>
+<li><p>Once you&#39;ve built your API image, set up a simple integration test between your database and api by creating a container for each; note that your commands might be different depending on how you designed your Dockerfiles:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run -d `
+    -e ACCEPT_EULA=Y -e sa_password=P@ssw0rd `
+    --name database mssql:dev
+PS: node-0 Administrator&gt; docker container run -d  `
+    -p 8081:80 --name api api:dev
+</code></pre>
+<p>Visit your API at <code>&lt;node-0 public IP&gt;:8081/api/pet</code>. You should see a JSON response containing one of the image URLs from your database. Leave these containers running for now.</p>
+</li>
+</ol>
+<h2 id="containerizing-the-frontend">Containerizing the Frontend</h2>
+<ol>
+<li><p>Navigate to <code>fundamentals-final-win/ui</code> to find the source and config for your web frontend.</p>
+</li>
+<li><p>You know the following about compiling and running this frontend:</p>
+<ul>
+<li>It&#39;s an ASP.NET core 2.0 app</li>
+<li>All the source is available in <code>fundamentals-final-win/ui</code></li>
+<li>To build the app, run <code>dotnet restore</code>, then <code>dotnet publish -c Release -o out</code></li>
+<li>The above build step will leave all the build output needed to run the app in <code>out/</code></li>
+<li>From the directory containing the build output, the frontend can be started via <code>dotnet ui.dll</code></li>
+<li>Once up, the frontend will serve itself on port 3000.</li>
+</ul>
+<p>Write a Dockerfile that captures the necessary build and config information, and build your ui image.</p>
+</li>
+<li><p>Once you&#39;ve built your ui image, start a container based on it. Make sure your database and api containers are still running, and check to see if you can hit your website in your browser at <code>&lt;node-0 public IP&gt;:&lt;port&gt;/pet</code>; if so, you have successfully containerized all three tiers of your application.</p>
+</li>
+</ol>
+<h2 id="orchestrating-the-application">Orchestrating the Application</h2>
+<p>Once all three elements of the application are containerized, it&#39;s time to assemble them into a functioning application by writing a Docker compose file. The environmental requirements for each service are as follows:</p>
+<ul>
+<li><strong>Database</strong>:<ul>
+<li>Named <code>database</code>.</li>
+<li>Make sure the environment variables <code>ACCEPT_EULA</code> and <code>sa_password</code> are set in the compose file, if they weren&#39;t set in the database&#39;s Dockerfile (when would you want to set them in one place versus the other?).</li>
+</ul>
+</li>
+<li><strong>API</strong>:<ul>
+<li>Named <code>api</code>.</li>
+</ul>
+</li>
+<li><strong>Frontend</strong>:<ul>
+<li>Named <code>ui</code>.</li>
+</ul>
+</li>
+</ul>
+<p>Write a <code>docker-compose.yml</code> to capture this configuration, and use it to stand up your app with Docker Compose, Swarm, or Kubernetes. Make sure the website is reachable from the browser.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, you containerized and orchestrated a simple three tier application by writing a Dockerfile for each service, and a Docker Compose file for the full application. In practice, developers should be including their Dockerfiles with their source code, and senior developers and / or application architects should be providing Docker Compose files for the full application, possibly in conjunction with the operations team for environment-specific config.</p>
+<p>Compare your Dockerfiles and Docker Compose file with other people in the class; how do your solutions differ? What are the possible advantages of each approach?</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

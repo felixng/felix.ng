@@ -1,0 +1,478 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="api-tests">API Tests</h1>
+<p>In the following exercises we will use our simple Java API and then write some tests for this API. Unlike the unit tests we did previously, the API tests will run in their own container during execution.</p>
+<p>The project folder for this exercise is <code>~/ddev-labs/api-tests</code>.</p>
+<h2 id="adding-postgres-as-a-backing-db">Adding Postgres as a backing DB</h2>
+<p>In this exercise we will execute tests against the Java API which in turn uses the Postgres database as a backing data store.</p>
+<ol>
+<li><p>Build the API and database containers we want to test:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ cd ~/ddev-labs/api-tests
+ubuntu@infra:~/ddev-labs/api-tests$ docker image build -t ddev-api:1.0 api
+ubuntu@infra:~/ddev-labs/api-tests$ docker image build -t ddev-db:1.0 database
+</code></pre>
+</li>
+<li><p>From the project folder <code>api-tests</code> open the file <code>docker-compose-api.yml</code>. Note how we use pre-built images for the <code>api</code> and <code>database</code> services.</p>
+</li>
+<li><p>Now let&#39;s run the application:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/api-tests$ docker-compose -f docker-compose-api.yml up
+</code></pre>
+</li>
+<li><p>And test it:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/api-tests$ curl localhost:8080/api/pet
+</code></pre>
+<p>which should return something along the lines of:</p>
+<pre><code class="lang-json">{&quot;imageId&quot;:11,&quot;url&quot;:&quot;https://....jpg&quot;,&quot;description&quot;:&quot;cat image&quot;}
+</code></pre>
+</li>
+<li><p>Stop the application by hitting <code>CTRL+C</code>, and tidy up as usual:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/api-tests$ docker-compose -f docker-compose-api.yml down
+</code></pre>
+</li>
+</ol>
+<h2 id="writing-api-tests">Writing API tests</h2>
+<p>Now that we have our API up and running, we want to write some API tests for it. For this we&#39;re going to use Node JS and Jasmine, but we could just as easily use any other language and framework we like, since API testing treats the API like a black box.</p>
+<ol>
+<li><p>In the project folder <code>api-tests</code> we have added a folder <code>tests</code>.</p>
+</li>
+<li><p>From there open the file <code>tests/package.json</code>. It should have this content:</p>
+<pre><code class="lang-json">{
+    &quot;name&quot;: &quot;api-tests-java&quot;,
+    &quot;version&quot;: &quot;1.0.0&quot;,
+    &quot;main&quot;: &quot;server.js&quot;,
+    &quot;scripts&quot;: {
+        &quot;test&quot;: &quot;jasmine-node *.js&quot;,
+        &quot;start&quot;: &quot;node server.js&quot;
+    },
+    &quot;dependencies&quot;: {
+        &quot;express&quot;: &quot;^4.15.2&quot;,
+        &quot;jasmine-node&quot;: &quot;^1.14.5&quot;,
+        &quot;request&quot;: &quot;^2.81.0&quot;
+    }
+}
+</code></pre>
+<p>Note especially the <code>test</code> key under <code>scripts</code>, indicating the script that will run our tests.</p>
+</li>
+<li><p>We also have a file <code>api-spec.js</code> in the same folder that contains the following (API) test, which expects to hit an API at <code>http://api:8080</code>. This is what we meant by testing the API like a black box: anything could be sitting behind that endpoint; we only care that it gives a response we expect:</p>
+<pre><code class="lang-javascript">var request = require(&#39;request&#39;);
+var base_url = &quot;http://api:8080/&quot;;
+
+describe(&quot;When testing &#39;api/pet&#39;&quot;, function(){
+    it(&quot;should respond with the URL of a cat GIF&quot;, function(done) {
+        request(base_url + &#39;api/pet&#39;, function(error, response, body){
+            expect(body).toMatch(/\{&quot;imageId&quot;:\d+,&quot;url&quot;:&quot;http:/);
+            done();
+        });
+    });
+});
+</code></pre>
+</li>
+<li><p>And finally we have a <code>Dockerfile</code> in the <code>tests</code> folder with:</p>
+<pre><code class="lang-dockerfile">FROM node:8-alpine
+WORKDIR /app
+COPY package.json .
+RUN npm install
+COPY . .
+CMD npm run test
+</code></pre>
+<p>which we use to build the image for running our tests. Notice the <code>CMD</code> calling the test script defined above.</p>
+</li>
+<li><p>Finally, have a look at our application definition at <code>docker-compose-api-tests.yml</code>:</p>
+<pre><code class="lang-yaml">version: &#39;3.1&#39;
+services:
+    tests:
+        build: tests
+        networks:
+        - back-tier
+networks:
+    back-tier:
+</code></pre>
+<p>Note how we put the <code>tests</code> container on the same network as the <code>api</code> container (defined in <code>docker-compose-api.yml</code>) to enable service discovery.</p>
+</li>
+<li><p>Re-start the API, and wait until it is initialized:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ cd ~/ddev-labs/api-tests
+ubuntu@infra:~/ddev-labs/api-tests$ docker-compose \
+    -f docker-compose-api.yml up
+</code></pre>
+</li>
+<li><p>Now, in another terminal run the API tests:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ cd ~/ddev-labs/api-tests
+ubuntu@infra:~/ddev-labs/api-tests$ docker-compose \
+    -f docker-compose-api-tests.yml up --build
+</code></pre>
+<p>you should see something like this:</p>
+<pre><code class="lang-bash">...
+tests_1  | 
+tests_1  | &gt; api-tests-java@1.0.0 test /app
+tests_1  | &gt; jasmine-node *.js
+tests_1  | 
+tests_1  | .
+tests_1  | 
+tests_1  | Finished in 0.053 seconds
+tests_1  | 1 test, 1 assertion, 0 failures, 0 skipped
+tests_1  | 
+tests_1  | 
+apitests_tests_1 exited with code 0
+</code></pre>
+</li>
+<li><p>Clean up:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/api-tests$ docker-compose -f docker-compose-api.yml down; \
+    docker-compose -f docker-compose-api-tests.yml down
+</code></pre>
+<p>We have an API that is using a Postgres DB as storage backend and runs in containers. Then in another container we run our tests against that API.</p>
+</li>
+</ol>
+<h2 id="optional-challenge-exercise-with-python-flask-api-backed-by-mongo-db">Optional Challenge: Exercise with Python/Flask API backed by Mongo DB</h2>
+<p>This exercise is optional. It shows an alternative implementation of an API which can be tested using API tests.</p>
+<ol>
+<li><p>In the workshop folder <code>~/ddev-labs</code> create a project folder <code>api-tests-flask</code> and navigate to it:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ cd ~/ddev-labs
+ubuntu@infra:~/ddev-labs$ mkdir api-tests-flask
+ubuntu@infra:~/ddev-labs$ cd api-tests-flask
+</code></pre>
+</li>
+</ol>
+<h3 id="creating-a-python-flask-api">Creating a Python Flask API</h3>
+<p>In this exercise we&#39;ll create a simple Flask based API. The API will be backed by Mongo DB as a database.</p>
+<ol>
+<li><p>Create a folder <code>api</code> as well as a folder <code>tests</code> in the <code>api-tests-flask</code> folder:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/api-tests-flask$ mkdir api
+ubuntu@infra:~/ddev-labs/api-tests-flask$ mkdir tests
+</code></pre>
+</li>
+<li><p>Add a file <code>api/requirements.txt</code> with this content:</p>
+<pre><code class="lang-bash">flask
+</code></pre>
+</li>
+<li><p>Add a file <code>api/main.py</code> with this content:</p>
+<pre><code class="lang-python">import json
+from flask import Flask, Response, request
+app = Flask(__name__)
+
+@app.route(&quot;/&quot;)
+def description():
+    return &quot;Products API!&quot;
+
+products = [
+    {&quot;id&quot;: 1, &quot;name&quot;: &quot;Samsung Galaxy S8&quot;},
+    {&quot;id&quot;: 2, &quot;name&quot;: &quot;Apple IPhone 6s&quot;},
+    {&quot;id&quot;: 3, &quot;name&quot;: &quot;Google Nexus 6P&quot;},
+    {&quot;id&quot;: 4, &quot;name&quot;: &quot;LG G6&quot;}
+]
+
+@app.route(&quot;/products&quot;)
+def list_products():
+    return Response(json.dumps(products), mimetype=&#39;application/json&#39;)
+
+if __name__ == &quot;__main__&quot;:
+    app.run(host=&#39;0.0.0.0&#39;, port=8000)
+</code></pre>
+</li>
+<li><p>Add a file <code>api/Dockerfile</code> which is used to build the API:</p>
+<pre><code class="lang-dockerfile">FROM python:2.7
+RUN mkdir -p /app
+WORKDIR /app
+COPY requirements.txt /app/
+RUN pip install -r requirements.txt
+COPY . /app
+EXPOSE 8000
+ENTRYPOINT python main.py
+</code></pre>
+</li>
+<li><p>Build the image for the API:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/api-tests-flask$ docker image build -t flask-api api
+</code></pre>
+</li>
+<li><p>Run the API:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/api-tests-flask$ docker container run \
+    --rm -it -p 8000:8000 flask-api
+</code></pre>
+</li>
+<li><p>Manually test the API:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/api-tests-flask$ curl localhost:8000/products
+</code></pre>
+<p>should return a response similar to this:</p>
+<pre><code class="lang-json">[
+   {
+      &quot;id&quot;:1,
+      &quot;name&quot;:&quot;Samsung Galaxy S8&quot;
+   },
+   {
+      &quot;id&quot;:2,
+      &quot;name&quot;:&quot;Apple IPhone 6s&quot;
+   },
+   {
+      &quot;id&quot;:3,
+      &quot;name&quot;:&quot;Google Nexus 6P&quot;
+   },
+   {
+      &quot;id&quot;:4,
+      &quot;name&quot;:&quot;LG G6&quot;
+   }
+]%
+</code></pre>
+</li>
+<li><p>Kill the container once you&#39;ve seen it running correctly.</p>
+</li>
+</ol>
+<h3 id="adding-mongo-db-as-a-backing-db">Adding Mongo DB as a backing DB</h3>
+<p>In this step we will add Mongo DB to the picture and extend the API such as that it uses Mongo DB as a backing data store.</p>
+<ol>
+<li><p>Add <code>flask_pymongo</code> as a dependency to the file <code>api/requirements.txt</code>.</p>
+</li>
+<li><p>Add the following import statements to <code>api/main.py</code>:</p>
+<pre><code class="lang-python">from bson.json_util import dumps
+from flask_pymongo import PyMongo
+</code></pre>
+</li>
+<li><p>Just after the line <code>app = Flask(__name__)</code> add the following lines to initialize a connection to the Mongo DB:</p>
+<pre><code class="lang-python">app.config[&#39;MONGO_HOST&#39;] = &#39;mongo&#39;
+app.config[&#39;MONGO_PORT&#39;] = 27017
+app.config[&#39;MONGO_DBNAME&#39;] = &#39;inventory&#39;
+app.config[&#39;MONGO_URI&#39;] = &#39;mongodb://mongo:27017/inventory&#39;
+mongo = PyMongo(app)
+</code></pre>
+</li>
+<li><p>Change the function <code>list_products</code> as follows:</p>
+<pre><code class="lang-python">@app.route(&quot;/products&quot;, methods=[&#39;GET&#39;])
+def list_products():
+    products = mongo.db.products.find(
+        {&quot;$or&quot;: [
+            {&quot;discontinued&quot;:{&#39;$exists&#39;:False}},
+            {&quot;discontinued&quot;:False}
+        ]}
+    )
+    return Response(dumps(products), mimetype=&#39;application/json&#39;)
+</code></pre>
+<p>to load all the not discontinued products from Mongo DB.</p>
+</li>
+<li><p>Add a method <code>add_product</code> as follows:</p>
+<pre><code class="lang-python">@app.route(&quot;/products&quot;, methods=[&#39;POST&#39;])
+def add_product():
+    prod = request.json
+    prod_id = mongo.db.products.insert(prod)
+    return Response(response=str(prod_id), status=201)
+</code></pre>
+</li>
+<li><p>Create a file <code>api-tests-flask/docker-compose.yml</code> with the following content:</p>
+<pre><code class="lang-yaml">version: &#39;3.1&#39;
+services:
+    api:
+        build: api
+        ports:
+            - 8000:8000
+        volumes:
+            - ./api:/app
+    mongo:
+        image: mongo:3.4
+        volumes:
+        - ./data:/data/db
+        ports:
+        - 27017:27017   # for debugging purposes only
+</code></pre>
+<p>Gist: <a href="http://bit.ly/2uDKGxQ">http://bit.ly/2uDKGxQ</a></p>
+</li>
+<li><p>Run the application using Docker Compose:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/api-tests-flask$ docker-compose up --build
+</code></pre>
+</li>
+<li><p>In a new terminal window test the application using <code>curl</code> by adding a few new products e.g.:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl -X POST -H &quot;Content-Type: application/json&quot; \
+    -d &#39;{&quot;company&quot;: &quot;Samsung&quot;, &quot;name&quot;:&quot;Galaxy S8&quot;, &quot;price&quot;:755.99}&#39; \
+    localhost:8000/products
+
+ubuntu@infra:~$ curl -X POST -H &quot;Content-Type: application/json&quot; \
+    -d &#39;{&quot;company&quot;: &quot;Apple&quot;, &quot;name&quot;:&quot;iPhone 7S&quot;, &quot;price&quot;:795.05}&#39; \
+    localhost:8000/products
+
+ubuntu@infra:~$ curl -X POST -H &quot;Content-Type: application/json&quot; \
+    -d &#39;{&quot;company&quot;: &quot;Google&quot;, &quot;name&quot;:&quot;Nexus 6P&quot;, &quot;discontinued&quot;:false}&#39; \
+    localhost:8000/products
+
+ubuntu@infra:~$ curl -X POST -H &quot;Content-Type: application/json&quot; \
+    -d &#39;{&quot;company&quot;: &quot;Google&quot;, &quot;name&quot;:&quot;Nexus 5&quot;, &quot;discontinued&quot;:true}&#39; \
+    localhost:8000/products
+</code></pre>
+</li>
+<li><p>List all products to confirm your adds were successful:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl localhost:8000/products
+</code></pre>
+</li>
+<li><p>Shut down the API services with <code>docker-compose down</code>.</p>
+</li>
+</ol>
+<h3 id="writing-api-tests">Writing API tests</h3>
+<p>Now that we have a working API we want to write some API tests for it. For this we&#39;re going to use Node JS and Jasmine.</p>
+<ol>
+<li><p>Add a file <code>tests/package.json</code> with this content:</p>
+<pre><code class="lang-json">{
+    &quot;name&quot;: &quot;api-tests-flask&quot;,
+    &quot;version&quot;: &quot;1.0.0&quot;,
+    &quot;main&quot;: &quot;server.js&quot;,
+    &quot;scripts&quot;: {
+        &quot;test&quot;: &quot;jasmine-node *.js&quot;,
+        &quot;start&quot;: &quot;node server.js&quot;
+    },
+    &quot;dependencies&quot;: {
+        &quot;express&quot;: &quot;^4.15.2&quot;,
+        &quot;jasmine-node&quot;: &quot;^1.14.5&quot;,
+        &quot;request&quot;: &quot;^2.81.0&quot;
+    }
+}
+</code></pre>
+<p>Gist: <a href="http://bit.ly/2tKNkEW">http://bit.ly/2tKNkEW</a></p>
+</li>
+<li><p>Add a file <code>tests/api-spec.js</code> with this content:</p>
+<pre><code class="lang-javascript">var request = require(&#39;request&#39;);
+var base_url = &quot;http://api:8000/&quot;;
+
+describe(&quot;When testing api root&quot;, function(){
+    it(&quot;should respond with description&quot;, function(done) {
+        request(base_url, function(error, response, body){
+            expect(body).toEqual(&quot;Products API!&quot;);
+            done();
+        });
+    });
+});
+</code></pre>
+</li>
+<li><p>Add a <code>Dockerfile</code> to the <code>tests</code> folder:</p>
+<pre><code class="lang-dockerfile">FROM node:8-alpine
+WORKDIR /app
+COPY package.json .
+RUN npm install
+COPY . .
+CMD npm run test
+</code></pre>
+</li>
+<li><p>Add a file <code>api-tests-flask/docker-compose.api-tests.yml</code> with this content:</p>
+<pre><code class="lang-yaml">version: &#39;3.1&#39;
+services:
+  tests:
+    build: tests
+
+  api:
+    build: api
+
+  mongo:
+    image: mongo:3.4
+</code></pre>
+<p>Gist: <a href="http://bit.ly/2tEEbJR">http://bit.ly/2tEEbJR</a></p>
+</li>
+<li><p>Run the tests with:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/api-tests-flask$ docker-compose \
+    -f docker-compose.api-tests.yml up -d --build
+ubuntu@infra:~/ddev-labs/api-tests-flask$ docker-compose \
+    -f docker-compose.api-tests.yml logs -f tests
+</code></pre>
+<p>you should see something like this:</p>
+<pre><code class="lang-bash">...
+tests_1  | &gt; api-tests-flask@1.0.0 test /app
+tests_1  | &gt; jasmine-node *.js
+tests_1  |
+tests_1  | .
+tests_1  |
+tests_1  | Finished in 0.032 seconds
+tests_1  | 1 test, 1 assertion, 0 failures, 0 skipped
+tests_1  |
+tests_1  |
+tests_1  | npm info lifecycle api-tests-flask@1.0.0~posttest: api-tests-flask@1.0.0
+tests_1  | npm info ok
+apitestsflask_tests_1 exited with code 0
+</code></pre>
+<p>Clean up with <code>docker-compose -f docker-compose.api-tests.yml down</code>.</p>
+</li>
+<li><p>Add another test series to <code>api-spec.js</code>:</p>
+<pre><code class="lang-javascript">describe(&quot;When testing post to /products&quot;, function(){
+    var prod_id;
+
+    it(&quot;should respond with status 201 (CREATED)&quot;, function(done) {
+        var options = {
+            url: base_url + &quot;products&quot;,
+            headers: {
+                &#39;Content-Type&#39;: &#39;application/json&#39;
+            },
+            body: JSON.stringify({
+                &quot;company&quot;: &quot;LG&quot;,
+                &quot;name&quot;: &quot;G6&quot;,
+                &quot;price&quot;: 499.99
+            }),
+            dataType: &#39;json&#39;
+        }
+        request.post(options, function(error, response, body){
+            expect(response.statusCode).toEqual(201);
+            prod_id = body;
+            console.log(&quot;Prod ID: &quot; + body);
+            done();
+        });
+    });
+
+    it(&quot;should have created a new product&quot;, function(done){
+        request(base_url + &quot;products&quot;, function(error, response, body){
+            data = JSON.parse(body);
+            expect(data.length).toBeGreaterThan(0);
+            done();
+        })
+    });
+
+    it(&quot;should have created a new product with correct id&quot;, function(done){
+        request(base_url + &quot;products&quot;, function(error, response, body){
+            data = JSON.parse(body);
+            var found = false;
+            for(var i in data){
+                if(data[i]._id[&quot;$oid&quot;] === prod_id){
+                    found = true;
+                }
+            }
+            expect(found).toBe(true);
+            done();
+        })
+    });
+});
+</code></pre>
+<p>Gist: <a href="http://bit.ly/2u0M7EO">http://bit.ly/2u0M7EO</a></p>
+<p>these tests make sure we can actually add a new product to the DB.</p>
+</li>
+<li><p>Build and run the test suite again. Now you should see <code>4 tests, 4 assertions, 0 failures, 0 skipped</code>.</p>
+</li>
+<li><p>Clean up:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/api-tests-flask$ docker-compose -f \
+    docker-compose.api-tests.yml down
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>When testing containerized code, a key consideration is where to place your tests. In this exercise, we explored placing tests in a fully independent container from the containers we were interested in testing. This is usually an appropriate strategy for testing <em>behavior</em>, like the API behavior we examined here. Compare this to what we did in the last chapter, where we were interested in testing <em>logic</em> - that level of introspection was best done from within the container of interest.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

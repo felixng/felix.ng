@@ -1,0 +1,83 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="running-inspecting-containers">Running &amp; Inspecting Containers</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Start a container</li>
+<li>List running and stopped containers</li>
+</ul>
+<h2 id="running-containers">Running Containers</h2>
+<ol>
+<li><p>First, let&#39;s start a container, and observe the output:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run microsoft/nanoserver:latest `
+    powershell write-host &quot;hello world&quot;
+</code></pre>
+<p>The <code>microsoft/nanoserver:latest</code> part of the command indicates the <em>image</em> we want to use to define this container; it defines a private filesystem for the container. <code>write-host &quot;hello world&quot;</code> is the process we want to execute inside the kernel namespaces created when we use <code>docker container run</code>.</p>
+</li>
+<li><p>Now create another container from the same image, and run a different process inside of it:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run `
+    microsoft/nanoserver:latest powershell Get-Process
+</code></pre>
+<p>We get a list of only the processes running inside this container. Try doing <code>Get-Process</code> on the host; of course there is a much longer list of processes here, most of which were hidden from <code>Get-Process</code> running inside our container.</p>
+</li>
+</ol>
+<h2 id="listing-containers">Listing Containers</h2>
+<ol>
+<li><p>Try listing all your currently running containers:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container ls
+</code></pre>
+<p>There&#39;s nothing listed, since the containers you ran executed a single command, and shut down when finished. </p>
+</li>
+<li><p>List stopped as well as running containers with the <code>-a</code> flag:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container ls -a
+
+CONTAINER      IMAGE                        COMMAND                 STATUS                    ...
+cfdabf6928c7   microsoft/nanoserver:latest  &quot;powershell Get-Pr...&quot;  Exited (0) 2 minutes ago  ...           
+9c61fad09332   microsoft/nanoserver:latest  &quot;powershell write-...&quot;  Exited (0) 4 minutes ago  ...
+</code></pre>
+<p>We can see our exited containers this time, with a time and exit code in the <code>STATUS</code> column.</p>
+<blockquote>
+<p><strong>Where did those names come from?</strong> We truncated the above output table, but in yours you should also see a <code>NAMES</code> column with some funny names. All containers have names, which in most Docker CLI commands can be substituted for the container ID as we&#39;ll see in later exercises. By default, containers get a randomly generated name of the form <code>&lt;adjective&gt;_&lt;scientist / technologist&gt;</code>, but you can choose a name explicitly with the <code>--name</code> flag in <code>docker container run</code>.</p>
+</blockquote>
+</li>
+<li><p>Clean up all containers using this command:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container rm -f $(docker container ls -aq)
+</code></pre>
+<p>Please discuss with your peers what the above command exactly does.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise you ran your first container using <code>docker container run</code>, and explored the importance of the main process in a container; this process is a member of the host&#39;s list of processes like any other, but is &#39;containerized&#39; via tools like kernel namespaces, making this process and other processes running in the container behave as if they were the only processes running on the system. Furthermore, this process defines the state of the container; if the process exits, the container stops.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

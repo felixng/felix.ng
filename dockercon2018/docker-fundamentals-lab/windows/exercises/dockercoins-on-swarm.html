@@ -1,0 +1,80 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="dockercoins-on-swarm">Dockercoins On Swarm</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Deploy an application on swarm as a &#39;stack&#39;, using a docker compose file</li>
+<li>Get some high-level monitoring information about the services and tasks running as part of a stack</li>
+</ul>
+<h2 id="prepare-images-and-stack-file">Prepare Images and Stack File</h2>
+<ol>
+<li><p>Compare <code>docker-compose.yml</code> with <code>stack.yml</code> in your <code>orchestration-workshop-net</code> directory you cloned in the &#39;Starting a Compose App&#39; exercise. They&#39;re very similar, but with a couple of important differences:</p>
+<ul>
+<li>When deploying as a stack, we can introduce the <code>deploy</code> key, children of which let us specify swarm-specific configurations. In this case, we set each service to DNSRR mode with the key <code>endpoint_mode: dnsrr</code>.</li>
+<li>Under the <code>webui</code> service, we need to set host mode port forwarding so our web frontend container can receive traffic forwarded from a host port.</li>
+<li>Finally, we replace the default single-node <code>nat</code> network with a custom <code>dockercoins</code> network, which will get created as an overlay network connecting all the dockercoins containers across our swarm.</li>
+</ul>
+</li>
+</ol>
+<h2 id="start-our-services">Start our Services</h2>
+<ol>
+<li><p>Now that everything is prepped, we can start our stack. On <code>node-0</code>:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; cd ~/orchestration-workshop-net
+PS: node-0 orchestration-workshop-net&gt; docker stack deploy -c=&#39;stack.yml&#39; dc
+</code></pre>
+</li>
+<li><p>Check and see how your services are doing:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker stack services dc
+
+ID            NAME       MODE        REPLICAS  IMAGE                 
+0eqfdnr4nqp9  dc_redis   replicated  1/1       redis:3.2-nanoserver
+lfja33rybl9j  dc_worker  replicated  1/1       training/dc_worker:1.0
+sdobunv8m544  dc_webui   replicated  1/1       training/dc_webui:1.0
+sr5s4yu3u1lw  dc_hasher  replicated  1/1       training/dc_hasher:1.0
+uy9ztehqhgkw  dc_rng     replicated  1/1       training/dc_rng:1.0
+</code></pre>
+<p>Notice the <code>REPLICAS</code> column in the output of above command; this shows how many of your desired replicas are running. At first, a few might show 0/1; before those tasks can start, the worker nodes will need to download the appropriate images from Docker Hub.</p>
+</li>
+<li><p>Check out the details of the tasks running in your stack with <code>stack ps</code>:</p>
+<pre><code class="lang-powershell">PS: node-0 orchestration-workshop-net&gt; docker stack ps dc
+</code></pre>
+<p>This shows the details of each running task scheduled by services in your stack, similar to <code>service ps</code>, but for each service in the stack.</p>
+</li>
+<li><p>Determine the public IP and port Dockercoins&#39; web UI is being served at, and visit it in your browser.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, we stood up our first &#39;stack&#39;. A stack is a collection of docker components (services, networks, volumes etc) that make up a full application, and we can create one directly from the same docker compose file we used to start an application on a single host using docker compose. A stack, however, will schedule workloads using swarm, distributed across our cluster.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

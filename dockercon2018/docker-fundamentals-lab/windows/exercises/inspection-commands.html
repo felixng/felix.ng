@@ -1,0 +1,108 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="inspection-commands">Inspection Commands</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Gather system level info from the docker engine</li>
+<li>Consume and format the docker engine&#39;s event stream for monitoring purposes</li>
+</ul>
+<h2 id="inspecting-system-information">Inspecting System Information</h2>
+<ol>
+<li><p>We can find the <code>info</code> command under <code>system</code>. Execute:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker system info
+</code></pre>
+</li>
+<li><p>From the output of the last command, identify:</p>
+<ul>
+<li>how many images are cached on your machine?</li>
+<li>how many containers are running or stopped?</li>
+<li>what kernel version of Windows are you running?</li>
+<li>whether Docker is running in swarm mode?</li>
+</ul>
+</li>
+</ol>
+<h2 id="monitoring-system-events">Monitoring System Events</h2>
+<ol>
+<li><p>There is another powerful system command that allows us to monitor what&#39;s happening on the Docker host. Execute the following command:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker system events
+</code></pre>
+<p>Please note that it looks like the system is hanging, but that is not the case. The system is just waiting for some events to happen.</p>
+</li>
+<li><p>Open a second powershell window and execute the following command:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run --rm microsoft/nanoserver `
+    powershell write-host &#39;Hello World!&#39;
+</code></pre>
+<p>and observe the generated output in the first terminal. It should look similar to this:</p>
+<pre><code class="lang-powershell">2017-08-16T02:18:04.324998300Z container create 41bfd7d...
+2017-08-16T02:18:04.325979900Z container attach 41bfd7d...
+2017-08-16T02:18:04.675986700Z network connect 28164bac...
+2017-08-16T02:18:05.850980500Z container start 41bfd7d...
+2017-08-16T02:18:08.147940200Z container die 41bfd7d...
+2017-08-16T02:18:08.178937900Z network disconnect 28164bac...
+2017-08-16T02:18:08.445943400Z container destroy 41bfd7d...
+</code></pre>
+</li>
+<li><p>If you don&#39;t like the format of the output then we can use the <code>--format</code> parameter to define our own format in the form of a <a href="https://golang.org/pkg/text/template/">Go template</a>. Stop the events watch on your first terminal with <code>CTRL+C</code>, and try this:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker system events --format &#39;--&gt; {{.Type}}-{{.Action}}&#39;
+</code></pre>
+<p>now the output looks a little bit less cluttered when we rerun our nanoserver container on the second terminal as above.</p>
+</li>
+<li><p>Finally we can find out what the event structure looks like by outputting the events in <code>json</code> format (once again after killing the events watcher on the first terminal and restarting it with):</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker events --format &#39;{{json .}}&#39;
+</code></pre>
+<p>which should give us for the first event in the series after re-running our nanoserver container something like this (note, the output has been prettyfied for readability):</p>
+<pre><code class="lang-json">{
+&quot;status&quot;: &quot;create&quot;,
+&quot;id&quot;: &quot;3a8d28972026945ca27727e48bcbc66ae7539ecbe0a85d3c3d82d4c34463954f&quot;,
+&quot;from&quot;: &quot;microsoft/nanoserver&quot;,
+&quot;Type&quot;: &quot;container&quot;,
+&quot;Action&quot;: &quot;create&quot;,
+&quot;Actor&quot;: {
+    &quot;ID&quot;: &quot;3a8d28972026945ca27727e48bcbc66ae7539ecbe0a85d3c3d82d4c34463954f&quot;,
+    &quot;Attributes&quot;: {
+    &quot;image&quot;: &quot;microsoft/nanoserver&quot;,
+    &quot;name&quot;: &quot;festive_engelbart&quot;
+    }
+},
+&quot;scope&quot;: &quot;local&quot;,
+&quot;time&quot;: 1502850178,
+&quot;timeNano&quot;: 1502850178980991200
+}
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise we have learned how to inspect system wide properties of our Docker host by using the <code>docker system info</code> command; this is one of the first places to look for general config information to include in a bug report. We also saw a simple example of <code>docker system events</code>; the events stream is one of the primary sources of information that should be logged and monitored when running Docker in production. Many commercial as well as open source products (such as Elastic Stack) exist to facilitate aggregating and mining these streams at scale.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

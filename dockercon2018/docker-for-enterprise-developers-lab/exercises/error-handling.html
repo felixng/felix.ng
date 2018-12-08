@@ -1,0 +1,154 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="error-handling">Error Handling</h1>
+<p>In this lab we&#39;re going to implement a simple, defensively programmed component.</p>
+<p>The project folder for this exercise is <code>~/ddev-labs/error-handling</code>.</p>
+<h2 id="implementing-the-hasher">Implementing the Hasher</h2>
+<p>This is a component that will simulate malfunction.</p>
+<ol>
+<li><p>Open the file <code>hasher/server.py</code>. It should contain the following simple Python code:</p>
+<pre><code class="lang-python">from flask import Flask, Response
+import random
+import uuid
+
+app = Flask(__name__)
+
+@app.route(&quot;/hash&quot;)
+def get_hash():
+    value = random.randint(0, 9)
+    if value &lt; 8:
+        return Response(status=500)
+    hash_value = uuid.uuid4().hex
+    return Response(hash_value)
+
+if __name__ == &quot;__main__&quot;:
+    app.run(host=&#39;0.0.0.0&#39;, port=8000)
+</code></pre>
+<p>notice how the method <code>getHash</code> returns an error 80% of the time. Otherwise it returns the hash code of a random UUID value.</p>
+</li>
+<li><p>To the file <code>hasher/Dockerfile</code> add this content:</p>
+<pre><code class="lang-dockerfile">FROM python:2.7-alpine
+RUN pip install flask
+RUN mkdir /app
+WORKDIR /app
+COPY . /app
+CMD python server.py
+</code></pre>
+<p>notice how we explicitly install <code>flask</code> as an external dependency of our Python app.</p>
+</li>
+</ol>
+<h2 id="implementing-the-worker">Implementing the Worker</h2>
+<p>This will be the consumer of the above hasher component. It has to be implemented in a defensive way to account for potential malbehavior of the hasher component.</p>
+<ol>
+<li><p>Open the file <code>worker/server.py</code> which should have the following content:</p>
+<pre><code class="lang-python">import requests
+import logging
+from time import sleep
+
+def get_hash(num_tries):
+
+    n = 0
+    while True:
+        r = requests.get(&#39;http://hasher:8000/hash&#39;)
+        if r.status_code == 200:
+            logging.warning(&quot;Got hash=%s&quot;, r.text)
+            n = 0
+        else:
+            if n == num_tries:
+                logging.error(&quot;Call failed after %d retries&quot;, num_tries)
+                n = 0
+            else:
+                logging.warn(&quot;request failed; re-trying %d&quot;, n)
+                sleep((2**n)*1)
+                n+=1
+
+if __name__ == &quot;__main__&quot;:
+    logging.info(&quot;&gt;&gt;&gt; Starting worker&quot;)
+    get_hash(5)
+    logging.info(&quot;&lt;&lt;&lt; Ending worker&quot;)
+</code></pre>
+<p>The python worker tries to get hashes from the hasher service, but takes two precautions:</p>
+<ul>
+<li>The outer if / else handles bad responses from the hasher, and retries in the event of a bad response.</li>
+<li>The retry logic backs off exponentially, and gives up after a while. If the hasher service is unhealthy, we don&#39;t want to hammer it with requests as fast as we can loop! Instead, give it time to hopefully recover.</li>
+</ul>
+<p>Also note that in all cases, plenty of logs are generated at various severity levels to create an auditable trail for when things go wrong.</p>
+</li>
+<li><p>To the file <code>worker/Dockerfile</code> add this content:</p>
+<pre><code class="lang-dockerfile">FROM python:2.7-alpine
+RUN pip install flask requests
+RUN mkdir /app
+WORKDIR /app
+COPY . /app
+CMD python server.py
+</code></pre>
+<p>Once again we install <code>flask</code> as an external dependency. But this time we also install the <code>requests</code> library.</p>
+</li>
+</ol>
+<h2 id="running-the-application">Running the application</h2>
+<ol>
+<li><p>To the file <code>docker-compose.yml</code> in the lab folder add this content:</p>
+<pre><code class="lang-yaml">version: &#39;3.1&#39;
+services:
+    hasher:
+        build: ./hasher
+        image: hasher
+    worker:
+        build: ./worker
+        image: worker
+        depends_on:
+            - hasher
+</code></pre>
+</li>
+<li><p>Run the application:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/error-handling$ docker-compose up --build
+</code></pre>
+</li>
+<li><p>Find the container ID of the worker container, and tail its logs:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/error-handling$ docker container ls | grep worker
+ubuntu@infra:~/ddev-labs/error-handling$ docker container logs \
+    --follow &lt;worker container ID&gt;
+</code></pre>
+</li>
+<li><p>Watch the logs for a minute. Notice how retries back off exponentially.</p>
+</li>
+<li><p>When done, leave the tail with <code>CTRL+c</code>, and clean up:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/error-handling$ docker-compose down
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this lab we have implemented a component that uses defensive coding style to account for possible failures of an external component. Failed network connections are of special importance in containerized applications.  The hasher was a toy built to fail, but even well engineered components may fail to respond to network requests.  For example, the orchestrator might (re)schedule them across a cluster, and there is a lapse as connection information takes time to propagate through a cluster (as in the case of Swarm&#39;s eventually consistent gossip control plane).  This behavior means that, though the service is ready and available, a given node might not find it for a period of time. Furthermore, in order to avoid swamping our networks with requests that services aren&#39;t ready to receive, always exponentially back off your retries like we did in the example above.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

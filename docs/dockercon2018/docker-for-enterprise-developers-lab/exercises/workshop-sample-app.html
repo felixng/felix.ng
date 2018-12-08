@@ -1,0 +1,325 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="workshop-sample-application">Workshop Sample Application</h1>
+<p>In this lab we are going to prepare a sample application that will serve us as a basis for most subsequent exercises. The backend is implemented in Java while the frontend is based on Node JS. Furthermore we use a Postgres database as our data store.</p>
+<p>For following exercises, use your development machine: either the infra node provided by the instructor, or your local machine.</p>
+<h2 id="using-docker-compose-to-build-run-the-application">Using Docker compose to build &amp; run the application</h2>
+<ol>
+<li><p>There should be a directory containing the demos and exercises for this workshop pre-loaded on your VM; navigate there now:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ cd ~/ddev-labs
+</code></pre>
+<p>If that directory isn&#39;t present, download the lab assets on your <code>infra</code> node by doing <code>git clone -b ee2.1 https://github.com/docker-training/ddev-labs</code>.</p>
+</li>
+<li><p>Build the sample application:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ cd ~/ddev-labs/ddev-seed
+ubuntu@infra:~/ddev-labs/ddev-seed$ docker-compose build
+</code></pre>
+<p>Please be patient since the above command will build the images that back the 3 services that makes up our application. You should see something similar to this (abbreviated output shown):</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/ddev-seed$  docker-compose build
+Building api
+Step 1/12 : FROM maven:latest AS appserver
+latest: Pulling from library/maven
+9f0706ba7422: Already exists
+d3942a742d22: Pull complete
+62b1123c88f6: Pull complete
+cd20aef20918: Pull complete
+a45121f36b26: Pull complete
+62ab37d06041: Pull complete
+03c611b2838d: Pull complete
+8c3c1f561032: Pull complete
+463554ba15a0: Pull complete
+3ef0fdd588bb: Pull complete
+6a6871006876: Pull complete
+74bd4e62771d: Pull complete
+Digest: sha256:85987e6a9ad9847b65fd0b0cf78aa5542b9f84efd66c89d21b25ee39fffef1e7
+Status: Downloaded newer image for maven:latest
+---&gt; d089198872b5
+Step 2/12 : WORKDIR /usr/src/atsea
+...
+Building ui
+Step 1/8 : FROM node:8-alpine
+8-alpine: Pulling from library/node
+88286f41530e: Pull complete
+9d3e88382b55: Pull complete
+b9798bb8846b: Pull complete
+Digest: sha256:9640cfe623ffe57bafb29763a82fb04eb774337cb656c172938056e58e0afd2b
+Status: Downloaded newer image for node:8-alpine
+...
+Building database
+Step 1/7 : FROM postgres
+latest: Pulling from library/postgres
+9f0706ba7422: Already exists
+df3070b9fd62: Pull complete
+945954562465: Pull complete
+...
+Removing intermediate container ae6a96c51439
+Successfully built 3ca762a69639
+Successfully tagged ddev_db:latest
+</code></pre>
+</li>
+<li><p>Run the application:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/ddev-seed$ docker-compose up
+</code></pre>
+<p>Once again, be patient, it takes a few seconds to start up all services. Specifically the database takes a moment to initialize the very first time. You should see something similar to this (shortened):</p>
+<pre><code class="lang-bash">Creating network &quot;ddevsample_front-tier&quot; with the default driver
+Creating network &quot;ddevsample_back-tier&quot; with driver &quot;overlay&quot;
+Creating ddevsample_ui_1 ...
+Creating ddevsample_api_1 ...
+Creating ddevsample_database_1 ...
+Creating ddevsample_ui_1
+Creating ddevsample_database_1
+Creating ddevsample_api_1 ... done
+Attaching to ddevsample_ui_1, ddevsample_database_1, ddevsample_api_1
+ui_1        | Listening at 0.0.0.0:3000
+database_1  | The files belonging to this database system will be owned by user &quot;postgres&quot;.
+database_1  | This user must also own the server process.
+...
+database_1  | performing post-bootstrap initialization ... ok
+api_1       |
+api_1       |   .   ____          _            __ _ _
+api_1       |  /\\ / ___&#39;_ __ _ _(_)_ __  __ _ \ \ \ \
+api_1       | ( ( )\___ | &#39;_ | &#39;_| | &#39;_ \/ _` | \ \ \ \
+api_1       |  \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+api_1       |   &#39;  |____| .__|_| |_|_| |_\__, | / / / /
+api_1       |  =========|_|==============|___/=/_/_/_/
+api_1       |  :: Spring Boot ::        (v1.5.3.RELEASE)
+api_1       |
+database_1  | syncing data to disk ... ok
+database_1  |
+...
+api_1       | 2017-07-06 13:59:49.054  INFO 1 --- [           main] com.docker.ddev.DdevApp                  : Starting DdevApp v0.0.1-SNAPSHOT on 158367d122d4 with PID 1 (/app/ddev-0.0.1-SNAPSHOT.jar started by root in /app)
+api_1       | 2017-07-06 13:59:49.057  INFO 1 --- [           main] com.docker.ddev.DdevApp                  : The following profiles are active: postgres
+api_1       | 2017-07-06 13:59:49.166  INFO 1 --- [           main] ationConfigEmbeddedWebApplicationContext : Refreshing org.springframework.boot.context.embedded.AnnotationConfigEmbeddedWebApplicationContext@5577140b: startup date [Thu Jul 06 13:59:49 GMT 2017]; root of context hierarchy
+database_1  |  done
+database_1  | server started
+database_1  | CREATE DATABASE
+database_1  |
+database_1  | CREATE ROLE
+database_1  |
+database_1  |
+database_1  | /usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/init-db.sql
+database_1  | CREATE TABLE
+database_1  | ALTER TABLE
+database_1  | ALTER ROLE
+database_1  | INSERT 0 1
+...
+database_1  | INSERT 0 1
+database_1  |
+database_1  |
+database_1  | LOG:  received fast shutdown request
+database_1  | waiting for server to shut down...LOG:  aborting any active transactions
+database_1  | LOG:  autovacuum launcher shutting down
+database_1  | .LOG:  shutting down
+database_1  | LOG:  database system is shut down
+api_1       | 2017-07-06 13:59:51.011  INFO 1 --- [           main] s.b.c.e.t.TomcatEmbeddedServletContainer : Tomcat initialized with port(s): 8080 (http)
+api_1       | 2017-07-06 13:59:51.026  INFO 1 --- [           main] o.apache.catalina.core.StandardService   : Starting service Tomcat
+api_1       | 2017-07-06 13:59:51.028  INFO 1 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet Engine: Apache Tomcat/8.5.14
+api_1       | 2017-07-06 13:59:51.143  INFO 1 --- [ost-startStop-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+...
+database_1  | LOG:  database system is ready to accept connections
+database_1  | LOG:  autovacuum launcher started
+api_1       | 2017-07-06 13:59:51.559  INFO 1 --- [           main] j.LocalContainerEntityManagerFactoryBean : Building JPA container EntityManagerFactory for persistence unit &#39;default&#39;
+...
+api_1       | 2017-07-06 13:59:54.236  INFO 1 --- [           main] s.b.c.e.t.TomcatEmbeddedServletContainer : Tomcat started on port(s): 8080 (http)
+api_1       | 2017-07-06 13:59:54.244  INFO 1 --- [           main] com.docker.ddev.DdevApp                  : Started DdevApp in 5.818 seconds (JVM running for 6.261)
+</code></pre>
+<p><strong>Note:</strong> If the very first time you start the application, it fails with an error message similar to this:</p>
+<pre><code>api_1       | 2017-07-06 14:21:37.577 ERROR 1 --- [           main] o.s.boot.SpringApplication               : Application startup failed
+</code></pre><p>then just stop the application with <code>CTRL+C</code> and start again with <code>docker-compose up</code>. This is a timing problem where the API tries to access the DB that is not yet ready. In a later exercise we will show how one could prevent such situations from happening.</p>
+</li>
+<li><p>Ensure that the application is running by opening an additional terminal window, navigating to the application folder and listing the running services:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ cd ~/ddev-labs/ddev-seed
+ubuntu@infra:~/ddev-labs/ddev-seed$ docker-compose ps
+</code></pre>
+<p>you should see something like this:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/ddev-seed$ docker-compose ps
+        Name                       Command               State                       Ports
+---------------------------------------------------------------------------------------------------------------
+ddevsample_api_1        java -jar /app/ddev-0.0.1- ...   Up      0.0.0.0:5005-&gt;5005/tcp, 0.0.0.0:8080-&gt;8080/tcp
+ddevsample_database_1   docker-entrypoint.sh postgres    Up      0.0.0.0:5432-&gt;5432/tcp
+ddevsample_ui_1         /bin/sh -c node src/server.js    Up      0.0.0.0:3000-&gt;3000/tcp
+</code></pre>
+</li>
+<li><p>Test the application by opening a browser window and navigating to <code>http://&lt;publicIP&gt;:3000/pet</code>. You should be seeing cat pictures.</p>
+</li>
+<li>Refresh the view a few times and make sure you see different cat images.</li>
+<li>When done, stop the application by pressing <code>CTRL+C</code> in the terminal you launched from.</li>
+<li><p>Remove the application assets (stopped containers, networks etc):</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/ddev-seed$ docker-compose down
+</code></pre>
+</li>
+</ol>
+<h2 id="running-the-application-on-kubernetes">Running the application on Kubernetes</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<p>For this exercise you need to have <code>kubectl</code> and <code>minikube</code> installed on your development machine.</p>
+<ol>
+<li><p>Check that Minikube is running by getting the existing pods:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ kubectl get pods
+</code></pre>
+<p>since we didn&#39;t create any pods yet, you should see:</p>
+<pre><code class="lang-bash">No resources found.
+</code></pre>
+<p>If Minikube is not running (and <strong>only</strong> if it isn&#39;t), start it via:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ sudo minikube start --vm-driver=none --apiserver-ips 127.0.0.1 \
+    --apiserver-name localhost
+</code></pre>
+</li>
+<li><p>You have built the application images as described in the previous part with <code>docker-compose build</code>.</p>
+</li>
+<li><p>You&#39;re logged in to Docker Hub. If not use the following command to do so:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ docker login
+</code></pre>
+<p>enter your credentials when asked to do so.</p>
+</li>
+</ol>
+<h3 id="tagging-and-pushing-images-to-docker-hub">Tagging and pushing images to Docker Hub</h3>
+<p>To be able to run this application in Kubernetes on Minikube we need to have the images (publicly) available on Docker Hub.</p>
+<ol>
+<li><p>Define an environment variable with your Docker ID:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ export MY_DOCKER_ID=&lt;your Docker ID&gt;
+</code></pre>
+</li>
+<li><p>Run the script <code>tag-and-push.sh</code> to tag and push the images that we had previously built:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/ddev-seed$ ./tag-and-push.sh
+</code></pre>
+</li>
+</ol>
+<h3 id="creating-the-application-in-kubernetes-on-minikube">Creating the application in Kubernetes on Minikube</h3>
+<p>Kubernetes does not yet have something similar to a docker-compose or stack file. Thus we have to use a collection of YAML (or JSON) snippets to define the various objects. Luckily we can put all into one single file.</p>
+<ol>
+<li><p>Open the file <code>kube.yaml</code> and at each image name, replace <code>user</code> with your Docker ID.</p>
+</li>
+<li><p>Create all the Kubernetes objects that make up the application using the YAML file <code>kube.yaml</code>:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/ddev-seed$ kubectl apply -f kube.yaml
+</code></pre>
+<p>you should see this:</p>
+<pre><code class="lang-bash">namespace &quot;ddev&quot; created
+secret &quot;db-secret&quot; created
+deployment &quot;database&quot; created
+service &quot;database&quot; created
+deployment &quot;api&quot; created
+service &quot;api&quot; created
+deployment &quot;ui&quot; created
+service &quot;ui&quot; created
+</code></pre>
+</li>
+<li><p>Use <code>kubectl</code> to list all objects created in the namespace <code>ddev</code>:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/ddev-seed$ kubectl -n ddev get all
+</code></pre>
+<p>you should see something similar to this:</p>
+<pre><code class="lang-bash">NAME              DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+deploy/api        1         1         1            1           1m
+deploy/database   1         1         1            1           1m
+deploy/ui         1         1         1            1           1m
+
+NAME                     DESIRED   CURRENT   READY     AGE
+rs/api-5c677587f5        1         1         1         1m
+rs/database-5d5cb5488f   1         1         1         1m
+rs/ui-65d77678c9         1         1         1         1m
+
+NAME              DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+deploy/api        1         1         1            1           1m
+deploy/database   1         1         1            1           1m
+deploy/ui         1         1         1            1           1m
+
+NAME                     DESIRED   CURRENT   READY     AGE
+rs/api-5c677587f5        1         1         1         1m
+rs/database-5d5cb5488f   1         1         1         1m
+rs/ui-65d77678c9         1         1         1         1m
+
+NAME                           READY     STATUS    RESTARTS   AGE
+po/api-5c677587f5-26wdl        1/1       Running   0          1m
+po/database-5d5cb5488f-zs6pm   1/1       Running   0          1m
+po/ui-65d77678c9-dl6fg         1/1       Running   0          1m
+
+NAME           TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+svc/api        ClusterIP   10.101.203.18    &lt;none&gt;        8080/TCP         1m
+svc/database   ClusterIP   10.106.109.107   &lt;none&gt;        5432/TCP         1m
+svc/ui         NodePort    10.102.15.64     &lt;none&gt;        3000:32030/TCP   1m
+</code></pre>
+<p>Note the <code>NodePort</code> line above. It gives us the public port through which we can access the UI of the application. In my case it is port <code>32030</code>. It has been automatically assigned by Kubernetes.</p>
+</li>
+<li><p>Open a browser window and navigate to <code>http://&lt;public IP&gt;:&lt;NodePort&gt;/pet</code>, where <code>&lt;public IP&gt;</code> is a reachable IP for whatever host you&#39;re running your app on (the public IP for the <code>infra</code> node, for example, or <code>127.0.0.1</code> if you&#39;re running locally). You should see a nice cat GIF.</p>
+</li>
+<li><p>Refresh the browser a few times to load additional cat GIFs.</p>
+</li>
+<li><p>Delete the application from Minikube:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/ddev-seed$ kubectl delete namespace/ddev
+</code></pre>
+</li>
+</ol>
+<h2 id="exploring-the-application">Exploring the application</h2>
+<p>Open the application with your favorite editor. You should see this structure:</p>
+<pre><code class="lang-bash">|-api
+|-database
+|-devsecrets
+|-ui
+|-.dockerignore
+|-docker-compose-api.yml
+|-docker-compose.yml
+|-kube.yaml
+|-tag-and-push.sh
+</code></pre>
+<p>We just used the <code>docker-compose.yml</code> file to build and run the application. Open the file and take a moment to analyze its content. Discuss your findings with your peers. Make sure you can explain what each and every key in the file is for. If any are unclear, have a look at the Compose file docs at <a href="https://docs.docker.com/compose/compose-file/">https://docs.docker.com/compose/compose-file/</a>, or ask the instructor.</p>
+<p>Also open the <code>kube.yaml</code> file. We used it to run the application on Kubernetes. We have been using Minikube but it runs unmodified on any Kubernetes cluster. Make sure you can explain what each and every part in the file is for. If any are unclear, have a look at the Kubernetes documentation for <a href="https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/">Namespaces</a>, <a href="https://kubernetes.io/docs/concepts/configuration/secret/">Secrets</a>, <a href="https://v1-8.docs.kubernetes.io/docs/concepts/workloads/controllers/deployment/">Deployments</a> and <a href="https://v1-8.docs.kubernetes.io/docs/concepts/services-networking/service/">Services</a>.</p>
+<h3 id="the-database">The Database</h3>
+<p>The source code for the database service is in the subfolder <code>database</code>. Inside this folder we have the following 4 files</p>
+<ul>
+<li>Dockerfile</li>
+<li>pg_hba.conf</li>
+<li>postgresql.conf</li>
+<li>docker-entrypoint-initdb.d/init-db.sql</li>
+</ul>
+<p>The latter file contains the SQL to initialize and seed the database with some data. The <code>*.conf</code> files contain data to configure the Postgres database and the <code>Dockerfile</code> contains the instructions on how to build the database image.</p>
+<h3 id="the-api">The API</h3>
+<p>The source code for the backend API written in Java is in the subfolder <code>api</code>. We&#39;re using SpringBoot to create a simple REST API that is serving as the basis for our backend in our sample application. The API serves a random URL from a predefined set. We&#39;re using Maven as our build lifecycle tool. Some files worth mentioning:</p>
+<ul>
+<li><code>pom.xml</code>: this is the Maven project file containing all instruction on how to build (and run) the Java service.</li>
+<li><code>Dockerfile</code>: this contains the declarative definition of a multi-step build of the Docker image for the API service.</li>
+<li><code>src/main/resources/application.yml</code>: contains application configuration details</li>
+<li><code>src/main/java/com/docker/ddev/DdevApp.java</code>: The start class of the Java service</li>
+<li><code>src/main/java/com/docker/ddev/controller/PetController.java</code>: controller that handles <code>HTTP GET</code> requests at the URL <code>/api/pet</code></li>
+</ul>
+<h3 id="the-ui">The UI</h3>
+<p>All source code for the Node JS and Express JS based UI service is in the subfolder <code>ui</code>. It will use the API that we just described above as its backend. Let&#39;s look at the individual parts:</p>
+<ul>
+<li><code>Dockerfile</code>: used to build the Docker image for this service. It is based on a slim version of the official Node image.</li>
+<li><code>package.json</code>: The node definition file for the project.</li>
+<li><code>src/server.js</code>: Contains all the server side code for the UI service</li>
+<li><code>src/index.html</code>: Contains the Mustache template for the view to be served to the browser when requesting cat images</li>
+</ul>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this lab we have cloned and tested the workshop sample application consisting of a Java based backend that serves URLs to cat images and a frontend based on Node JS, Express JS and Mustache that uses the backend to retrieve image URLs and display them as a HTML page in a browser. The backend storage is provided by a Postgres database.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

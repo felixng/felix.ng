@@ -1,0 +1,357 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="logging">Logging</h1>
+<p>In this lab we&#39;re going to apply some of the recommended best practices around logging and error handling when using containers.</p>
+<p>Note: In the following <code>&lt;Docker ID&gt;</code> denotes your Docker Store user name. If you don&#39;t have an account on Docker Store please create one here (it&#39;s free): <a href="https://store.docker.com/signup">https://store.docker.com/signup</a></p>
+<p>The project folder for this exercise is <code>~/ddev-labs/logging</code>.</p>
+<h2 id="logging-in-java">Logging in Java</h2>
+<p>In this exercise you&#39;re going to create a Test controller in the Java API of our workshop sample application which logs events to STDIN such as that these events can be picked up by a logging aggregator. We use <code>slf4j</code> (Simple Logging Facade for Java) for this (<a href="https://www.slf4j.org/">https://www.slf4j.org/</a>).</p>
+<ol>
+<li><p>To the folder <code>api/src/main/java/com/docker/ddev/controller</code> we have added a file <code>TestController.java</code> with the following content:</p>
+<pre><code class="lang-java">package com.docker.ddev.controller;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping(&quot;/api&quot;)
+public class TestController{
+    @RequestMapping(value = &quot;/factorial/{number}&quot;, method = RequestMethod.GET)
+    public ResponseEntity&lt;String&gt; getFactorial(@PathVariable(&quot;number&quot;) long number) {
+        Long fac = calcFactorial(number);
+        return new ResponseEntity&lt;String&gt;(Long.toString(fac), HttpStatus.OK);
+    }
+
+    private Long calcFactorial(long number){
+        if(number == 1) return number;
+        return number * calcFactorial(number-1);
+    }
+}
+</code></pre>
+</li>
+<li><p>Run the application with:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ cd ~/ddev-labs/logging
+ubuntu@infra:~/ddev-labs/logging$ docker-compose up --build
+</code></pre>
+</li>
+<li><p>And test the new endpoint:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/logging$ curl localhost:8080/api/factorial/12
+</code></pre>
+<p>you should see the value <code>479001600</code> returned.</p>
+</li>
+<li><p>Our function seems to work, but it isn&#39;t providing any logging information. Add the following 2 import statements to the class in <code>TestController.java</code> to allow us to define a logger:</p>
+<pre><code class="lang-java">import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+</code></pre>
+</li>
+<li><p>Add a static logger to the class:</p>
+<pre><code class="lang-java">...
+public class TestController{
+    static final Logger logger = LoggerFactory.getLogger(TestController.class);
+...
+</code></pre>
+</li>
+<li><p>Now we can introduce logging to give us some more information to help us analyze what&#39;s going on in the system. Modify the <code>getFactorial</code> function to look like this:</p>
+<pre><code class="lang-java">public ResponseEntity&lt;String&gt; getFactorial(@PathVariable(&quot;number&quot;) long number) {
+    logger.debug(&quot;Entering getFactorial with number {}&quot;, number);
+
+    logger.info(&quot;Calculating factorial for number {}&quot;, number);
+
+    if(number &lt; 0){
+        String msg = &quot;Cannot calculate factorial for negative numbers&quot;;
+        logger.error(msg);
+        return new ResponseEntity&lt;String&gt;(msg, HttpStatus.BAD_REQUEST);
+    }
+
+    if(number &gt; 20){
+        String msg = &quot;Cannot calculate factorial for numbers &gt; 20&quot;;
+        logger.error(msg);
+        return new ResponseEntity&lt;String&gt;(msg, HttpStatus.BAD_REQUEST);
+    }
+
+    Long fac = calcFactorial(number);
+    return new ResponseEntity&lt;String&gt;(Long.toString(fac), HttpStatus.OK);
+}
+</code></pre>
+<p>We have instrumented our function with debug messages at the entry- and exit point. We also generate a log message of type info every time we try to calculate the factorial.</p>
+<p>The file <code>api/src/main/java/com/docker/ddev/controller/TestController.java</code> should look like this after the changes:</p>
+<pre><code class="lang-java">package com.docker.ddev.controller;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+
+@RestController
+@RequestMapping(&quot;/api&quot;)
+public class TestController{
+    static final Logger logger = LoggerFactory.getLogger(TestController.class);
+    @RequestMapping(value = &quot;/factorial/{number}&quot;, method = RequestMethod.GET)
+
+    public ResponseEntity&lt;String&gt; getFactorial(@PathVariable(&quot;number&quot;) long number) {
+        logger.debug(&quot;Entering getFactorial with number {}&quot;, number);
+        logger.info(&quot;Calculating factorial for number {}&quot;, number);
+
+        if(number &lt; 0){
+            String msg = &quot;Cannot calculate factorial for negative numbers&quot;;
+            logger.error(msg);
+            return new ResponseEntity&lt;String&gt;(msg, HttpStatus.BAD_REQUEST);
+        }
+
+        if(number &gt; 20){
+            String msg = &quot;Cannot calculate factorial for numbers &gt; 20&quot;;
+            logger.error(msg);
+            return new ResponseEntity&lt;String&gt;(msg, HttpStatus.BAD_REQUEST);
+        }
+
+        Long fac = calcFactorial(number);
+        return new ResponseEntity&lt;String&gt;(Long.toString(fac), HttpStatus.OK);
+    }
+
+    private Long calcFactorial(long number){
+        if(number == 1) return number;
+        return number * calcFactorial(number-1);
+    }
+}
+</code></pre>
+</li>
+<li><p>Now run the application:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/logging$ docker-compose up --build
+</code></pre>
+</li>
+<li><p>And test it for different numbers while observing the output in the console:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl localhost:8080/api/factorial/10; echo
+ubuntu@infra:~$ curl localhost:8080/api/factorial/-2; echo
+ubuntu@infra:~$ curl localhost:8080/api/factorial/22; echo
+ubuntu@infra:~$ curl localhost:8080/api/factorial/0; echo
+</code></pre>
+<p>In the case of <code>22</code> you should see something similar to this in the terminal:</p>
+<pre><code class="lang-bash">api_1       | 2017-07-12 14:39:04.562  INFO 1 --- [nio-8080-exec-1] c.docker.ddev.controller.
+    TestController  : Calculating factorial of 22.
+api_1       | 2017-07-12 14:39:04.563 ERROR 1 --- [nio-8080-exec-1] c.docker.ddev.controller.
+    TestController  : Cannot calculate factorial for numbers &gt; 20
+</code></pre>
+</li>
+<li><p>Notice that by default logging messages with loglevel <code>debug</code> are not output. Discuss with your peers what change would need to happen to see debug level messages.</p>
+</li>
+<li><p>Clean up with <code>docker-compose down</code>.</p>
+</li>
+</ol>
+<h2 id="optional-logging-in-net-core">Optional: Logging in .NET Core</h2>
+<p>We can do a similar exercise in .NET Core as we have done in Java. Here we&#39;ll use <code>log4net</code>, which is a port of <code>log4j</code>, as our logging library.</p>
+<ol>
+<li><p>Add a project folder <code>logging-net</code> to the lab folder <code>~/ddev-labs/logging</code>, and navigate there.</p>
+</li>
+<li><p>Create an example controller in a file <code>SampleController.cs</code>:</p>
+<pre><code class="lang-java">using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+
+namespace app.Controllers
+{
+    [Route(&quot;&quot;)]
+    public class SampleController : Controller
+    {
+        ILogger _log;
+
+        public SampleController(ILogger&lt;SampleController&gt; logger){
+            _log = logger;
+        }
+
+        [HttpGet]
+        public string Get()
+        {
+            return &quot;Sample controller&quot;;
+        }
+
+        [HttpGet(&quot;/info&quot;)]
+        public string Info()
+        {
+            _log.LogInformation(1000, &quot;This is an INFO message.&quot;);
+            return &quot;info&quot;;
+        }
+
+        [HttpGet(&quot;/warning&quot;)]
+        public string Warning()
+        {
+            _log.LogWarning(2000, &quot;This is an WARN message.&quot;);
+            return &quot;warning&quot;;
+        }
+
+        [HttpGet(&quot;/error&quot;)]
+        public string Error()
+        {
+            _log.LogError(3000, &quot;This is an ERR message.&quot;);
+            return &quot;error&quot;;
+        }
+
+        [HttpGet(&quot;/critical&quot;)]
+        public string Critical()
+        {
+            _log.LogCritical(9000, &quot;This is an CRITICAL message.&quot;);
+            return &quot;critical&quot;;
+        }
+    }
+}
+</code></pre>
+<p>Gist: <a href="http://bit.ly/2tEsLpG">http://bit.ly/2tEsLpG</a></p>
+</li>
+<li><p>Create a <code>Dockerfile</code> in this directory to generate your app:</p>
+<pre><code class="lang-dockerfile">FROM microsoft/dotnet AS build
+RUN mkdir /app
+WORKDIR /app
+RUN dotnet new webapi
+COPY SampleController.cs /app/Controllers
+
+FROM microsoft/dotnet:2.1-sdk
+RUN mkdir -p /app
+WORKDIR /app
+COPY --from=build /app/app.csproj /app/.
+RUN dotnet restore
+COPY --from=build /app/* /app/
+ENV ASPNETCORE_URLS http://+:80
+EXPOSE 80
+CMD [&quot;dotnet&quot;, &quot;run&quot;]
+</code></pre>
+</li>
+<li><p>Build the image:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/logging/logging-net$ docker image build -t logging-net .
+</code></pre>
+</li>
+<li><p>Run a container:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/logging/logging-net$ docker container run --rm -it \
+    -p 5000:80 logging-net
+</code></pre>
+</li>
+<li><p>Test the API via <code>curl localhost:5000/info</code>. You should get a response <code>info</code>.</p>
+</li>
+<li><p>Curl <code>/warning</code>, <code>/error</code> and <code>/critical</code>. Notice in the terminal that you get something like this:</p>
+<p><img src="../images/net-log-messages.png" alt="Log messages">/</p>
+<p>Note that the info message did not make it to the terminal. Why?</p>
+</li>
+<li><p>Optional: </p>
+<ul>
+<li>Change the application such as that info messages also get reported.</li>
+<li>Add a <code>/debug</code> endpoint which generates a debug log message and make sure it is reported in the terminal </li>
+</ul>
+</li>
+<li><p>Kill off your container with <code>CTRL+C</code>.</p>
+</li>
+</ol>
+<h2 id="optional-logging-in-python-flask">Optional: Logging in Python/Flask</h2>
+<p>To demonstrate the same principles in a different language and framework let&#39;s create an API similar to the one we did in .NET Core but this time using Python and Flask.</p>
+<ol>
+<li><p>Add a file <code>server.py</code> to the project folder with this content:</p>
+<pre><code class="lang-python">import logging
+from logging.handlers import RotatingFileHandler
+
+from flask import Flask
+
+app = Flask(__name__)
+app.logger.setLevel(logging.DEBUG)
+
+# create a console logger
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter(&#39;%(asctime)s - %(name)s - %(levelname)s - %(message)s&#39;)
+ch.setFormatter(formatter)
+app.logger.addHandler(ch)
+
+@app.route(&#39;/&#39;)
+def index():
+    app.logger.info(&#39;This is a Python/Flask sample API&#39;)
+    return &quot;This is a Python/Flask sample API&quot;
+
+@app.route(&#39;/info&#39;)
+def info():
+    app.logger.info(&#39;This is an info message&#39;)
+    return &quot;info&quot;
+
+@app.route(&#39;/warning&#39;)
+def warning():
+    app.logger.warning(&#39;This is a warning message&#39;)
+    return &quot;warning&quot;
+
+@app.route(&#39;/error&#39;)
+def error():
+    app.logger.error(&#39;This is an error message&#39;)
+    return &quot;error&quot;
+
+@app.route(&#39;/critical&#39;)
+def critical():
+    app.logger.critical(&#39;This is a critical message&#39;)
+    return &quot;critical&quot;
+
+if __name__ == &#39;__main__&#39;:
+    app.run(port=3000, host=&quot;0.0.0.0&quot;)
+</code></pre>
+<p>Gist: <a href="http://bit.ly/2uz8Dbi">http://bit.ly/2uz8Dbi</a></p>
+</li>
+<li><p>Add a file <code>requirements.txt</code> to the project folder with this content:</p>
+<pre><code class="lang-bash">flask
+</code></pre>
+</li>
+<li><p>Now add a <code>Dockerfile</code> with these instructions:</p>
+<pre><code class="lang-dockerfile">FROM python:2.7
+RUN mkdir -p /app
+WORKDIR /app
+COPY requirements.txt /app/
+RUN pip install -r requirements.txt
+COPY . /app
+CMD python server.py
+</code></pre>
+</li>
+<li><p>Build the Docker image:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/logging$ docker image build -t logging-flask .
+</code></pre>
+</li>
+<li><p>And run a container:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/logging/$ docker container run \
+    --rm -it -p 3000:3000 logging-flask
+</code></pre>
+</li>
+<li><p>Hit your app with <code>curl localhost:3000/info</code>, <code>/warning</code>, <code>/error</code> and <code>/critical</code> and confirm these work as expected.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this lab we have created some sample apps that generate log messages of different levels of severity. When thinking about logging in containerized applications, remember that your application may be replicated and distributed across many containers, services, and datacenters; will ops be able to put any given log message in context with the logs of the rest of your distributed application? Try to offer information that will help operations not only understand this individual process, but how it fits into the larger application as a whole, where relevant.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

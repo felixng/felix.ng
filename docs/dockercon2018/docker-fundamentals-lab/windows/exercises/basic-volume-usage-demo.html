@@ -1,0 +1,166 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="instructor-demo-basic-volume-usage">Instructor Demo: Basic Volume Usage</h1>
+<p>In this demo, we&#39;ll illustrate:</p>
+<ul>
+<li>Creating, updating, destroying, and mounting docker named volumes</li>
+<li>How volumes interact with a container&#39;s layered filesystem</li>
+<li>Usecases for mounting host directories into a container</li>
+</ul>
+<h2 id="using-named-volumes">Using Named Volumes</h2>
+<ol>
+<li><p>Create a volume, and inspect its metadata:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker volume create demovol
+PS: node-0 Administrator&gt; docker volume inspect demovol
+
+[
+    {
+        &quot;Driver&quot;: &quot;local&quot;,
+        &quot;Labels&quot;: {},
+        &quot;Mountpoint&quot;: &quot;C:\\ProgramData\\docker\\volumes\\demovol\\_data&quot;,
+        &quot;Name&quot;: &quot;demovol&quot;,
+        &quot;Options&quot;: {},
+        &quot;Scope&quot;: &quot;local&quot;
+    }
+]
+</code></pre>
+<p>We can see that by default, named volumes are created under <code>C:\\ProgramData\\docker\\volumes\\&lt;volume name&gt;\\_data</code>.</p>
+</li>
+<li><p>Run a container that mounts this volume, and list the filesystem therein:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run `
+    -it -v demovol:C:\demo microsoft/nanoserver powershell
+PS C:\&gt; ls
+
+    Directory: C:\
+
+Mode                LastWriteTime         Length Name
+----                -------------         ------ ----
+d----l        8/26/2018  12:10 AM                demo
+d-----        8/26/2018  12:11 AM                Program Files
+d-----        7/16/2016  12:09 PM                Program Files (x86)
+d-r---        8/26/2018  12:11 AM                Users
+d-----        8/26/2018  12:11 AM                Windows
+-a----       11/20/2016  11:32 AM           1894 License.txt
+</code></pre>
+<p>The <code>demo</code> directory is created as the mountpoint for our volume, as specified in the flag <code>-v demovol:C:\demo</code>. </p>
+</li>
+<li><p>Put a file in this volume:</p>
+<pre><code class="lang-powershell">PS C:\&gt; echo &#39;dummy file&#39; &gt; C:\demo\mydata.dat
+</code></pre>
+</li>
+<li><p>Exit the container, and list the contents of your volume on the host:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; ls C:\\ProgramData\\docker\\volumes\\demovol\\_data
+</code></pre>
+<p>You&#39;ll see your <code>mydata.dat</code> file present at this point in the host&#39;s filesystem. Delete the container:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container rm -f &lt;container ID&gt;
+</code></pre>
+<p>The volume and its contents will still be present on the host.</p>
+</li>
+<li><p>Start a new container mounting the same volume, and show that the old data is present in your new container:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container run `
+    -it -v demovol:C:\demo microsoft/nanoserver powershell
+PS C:\&gt; cat C:\demo\mydata.dat
+</code></pre>
+</li>
+<li><p>Exit this container, and inspect its mount metadata:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker container inspect &lt;container ID&gt;
+
+    &quot;Mounts&quot;: [
+        {
+            &quot;Type&quot;: &quot;volume&quot;,
+            &quot;Name&quot;: &quot;demovol&quot;,
+            &quot;Source&quot;: &quot;C:\\ProgramData\\docker\\volumes\\demovol\\_data&quot;,
+            &quot;Destination&quot;: &quot;c:\\demo&quot;,
+            &quot;Driver&quot;: &quot;local&quot;,
+            &quot;Mode&quot;: &quot;&quot;,
+            &quot;RW&quot;: true,
+            &quot;Propagation&quot;: &quot;&quot;
+        }
+    ],
+</code></pre>
+<p>Here we can see the volumes and host mountpoints for everything mounted into this container.</p>
+</li>
+<li><p>Clean up by removing that volume:</p>
+<pre><code class="lang-powershell">PS: node-0 Administrator&gt; docker volume rm demovol
+</code></pre>
+<p>You will get an error saying the volume is in use - docker will not delete a volume mounted to any container (even a stopped container) in this way. Remove the offending container first, then remove the volume again.</p>
+</li>
+</ol>
+<h2 id="mounting-host-paths">Mounting Host Paths</h2>
+<ol>
+<li><p>In a fresh directory <code>myweb</code>, make a Dockerfile to make a simple containerization of nginx:</p>
+<pre><code class="lang-dockerfile">FROM microsoft/windowsservercore
+RUN [&quot;powershell&quot;, &quot;wget&quot;, &quot;http://nginx.org/download/nginx-1.11.6.zip&quot;, \
+     &quot;-UseBasicParsing&quot;, &quot;-OutFile&quot;, &quot;c:\\nginx.zip&quot;]
+RUN [&quot;powershell&quot;, &quot;Expand-Archive&quot;, &quot;c:\\nginx.zip&quot;, &quot;-Dest&quot;, &quot;c:\\nginx&quot;]
+WORKDIR c:\\nginx\\nginx-1.11.6
+ENTRYPOINT [&quot;powershell&quot;, &quot;.\\nginx.exe&quot;]
+</code></pre>
+</li>
+<li><p>Build this image, and use it to start a container that serves the default nginx landing page:</p>
+<pre><code class="lang-powershell">PS: node-0 myweb&gt; docker image build -t nginx .
+PS: node-0 myweb&gt; docker container run -d -p 5000:80 nginx
+</code></pre>
+<p>Visit the landing page at <code>&lt;node-0 public IP&gt;:5000</code> to confirm everything is working, then remove this container.</p>
+</li>
+<li><p>Create some custom HTML for your new website:</p>
+<pre><code class="lang-powershell">PS: node-0 myweb&gt; echo &quot;&lt;h1&gt;Hello Wrld&lt;/h1&gt;&quot; &gt; index.html
+</code></pre>
+</li>
+<li><p>The HTML served by nginx is found in the container&#39;s filesystem at <code>C:\nginx\nginx-1.11.6\html</code>. Attempt to mount your <code>myweb</code> directory at this path:</p>
+<pre><code class="lang-powershell">PS: node-0 myweb&gt; docker container run -d -p 5000:80 `
+    -v C:\Users\Administrator\myweb:C:\nginx\nginx-1.11.6\html `
+    nginx
+</code></pre>
+<p>The container startup fails, since the <code>C:\nginx\nginx-1.11.6\html</code> directory isn&#39;t empty.</p>
+</li>
+<li><p>Modify your Dockerfile to remove the default content in this directory by adding one more line at the end:</p>
+<pre><code class="lang-dockerfile">RUN [&quot;powershell&quot;, &quot;Remove-Item&quot;, &quot;C:\\nginx\\nginx-1.11.6\\html\\*&quot;]
+</code></pre>
+<p>Rebuild your nginx image.</p>
+</li>
+<li><p>Launch an nginx container again based on this new nginx image, and mount in your custom html:</p>
+<pre><code class="lang-dockerfile">PS: node-0 myweb&gt; docker container run -d -p 5000:80 `
+    -v C:\Users\Administrator\myweb:C:\nginx\nginx-1.11.6\html `
+    nginx
+</code></pre>
+<p>Visit your webpage <code>&lt;node 0 public IP&gt;:5000</code>; you should be able to see your custom webpage.</p>
+</li>
+<li><p>There&#39;s a typo in your custom html. Fix the spelling of &#39;world&#39; in your HTML, and refresh the webpage; the content served by nginx gets updated without having to restart or replace the nginx container.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this demo, we saw two key points about volumes: first, they persist and provision files beyond the lifecycle of any individual container. Second, we saw that manipulating files on the host that have been mounted into a container immediately propagates those changes to the running container; this is a popular technique for developers who containerize their running environment, and mount in their in-development code so they can edit their code using the tools on their host machine that they are familiar with, and have those changes immediately available inside a running container without having to restart or rebuild anything.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

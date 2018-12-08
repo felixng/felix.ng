@@ -1,0 +1,308 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="configuration-management">Configuration Management</h1>
+<p>In this exercise we are going to extend the Java API of the workshop sample such as that it uses a bunch of environment variables, and allow for different secrets configuration in development versus production environments.</p>
+<p>The project folder for this exercise is <code>~/ddev-labs/configuration-management</code>.</p>
+<h2 id="planning-environment-specific-api-config">Planning Environment-Specific API Config</h2>
+<h3 id="creating-a-release-image">Creating a Release Image</h3>
+<p>In this part of this exercise, we&#39;ll start by creating a release image like shown in following figure:</p>
+<p><img src="../images/release-image.png" alt="">/</p>
+<ol>
+<li><p>Have a look in <code>api/Dockerfile</code>; the final image is based off of <code>java:8-jdk-alpine</code>. This java base image corresponds to the <em>application base image</em>, likely provided to us by our operations team. We expect any company-wide general config to have already been captured there.</p>
+</li>
+<li><p>Build the API image as is:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ cd ~/ddev-labs/configuration-management/api
+ubuntu@infra:~/ddev-labs/configuration-management/api$ docker image build \
+    -t api:release .
+</code></pre>
+<p>This corresponds to our <em>release image</em> - it has our application on top of our enterprise base image, but no environment-specific config has been included yet.</p>
+</li>
+</ol>
+<h3 id="creating-an-environment-image-for-development">Creating an Environment Image for Development</h3>
+<h4 id="including-config-in-the-environment-image">Including Config in the Environment Image</h4>
+<p>In this part of the exercise, we will start by including a postgres password into an environment image like shown in the following figure:</p>
+<p><img src="../images/dev-env-image.png" alt="">/</p>
+<ol>
+<li><p>Have a look in <code>api/src/main/java/com/docker/ddev/configuration/JpaConfiguration.java</code>. There should be a block that begins:</p>
+<pre><code class="lang-java">// Set password to connect to postgres using Docker secrets.
+try(BufferedReader br = new BufferedReader(new FileReader(&quot;/run/secrets/postgres_password&quot;))) {
+...
+</code></pre>
+<p>Our API relies on a secret to be able to access our Postgres database. As discussed in the secrets section, it may be convenient to mock the presence of this secret in development, in case we aren&#39;t running Swarm mode on our dev machines.</p>
+</li>
+<li><p>Make a development environment image for your API that mocks the presence of a secret in its nominal location by copying the file with your postgres password into the <code>api</code> folder:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/configuration-management/api$ cp \
+    ../devsecrets/postgres_password .
+</code></pre>
+<p>And create a Dockerfile called <code>Dockerfile-dev</code> that places this file where it would if it was a Swarm-managed secret, in an image based on your release image:</p>
+<pre><code class="lang-dockerfile">FROM api:release
+ADD postgres_password /run/secrets/postgres_password
+</code></pre>
+<p>Another option in this situation would be to use the same image for development and production, but mount a secret file into <code>/run/secrets/postgres_password</code> at runtime to mock the secret in the dev image. This has the advantage of only creating one image for both environments, but the disadvantage that that config (mounting the volume) has to be repeated each time the application is run in the dev environment. The approach followed in this step pushes that config as far &#39;upstream&#39; as possible, to avoid repetition later, at the cost of image flexibility.</p>
+</li>
+<li><p>Build this development environment image:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/configuration-management/api$ docker image build \
+    -f Dockerfile-dev \
+    -t api:dev .
+</code></pre>
+</li>
+</ol>
+<h4 id="passing-config-on-startup">Passing Config On Startup</h4>
+<p>In the following, we will pass further needed configuration in a file as shown in this figure:</p>
+<p><img src="../images/dev-env-image-w-conf-file.png" alt="">/</p>
+<ol>
+<li><p>Open the class <code>TestController.java</code> in the folder <code>api/src/main/java/com/docker/ddev/controller</code>. In this class we have a <code>showConfig</code> method that listens on the endpoint <code>/utility/showConfig</code> and returns the content of some environment variables:</p>
+<pre><code class="lang-java">...
+public ResponseEntity&lt;?&gt; showConfig() {
+    logger.info(&quot;Performing showConfig&quot;);
+
+    JSONObject config = new JSONObject();
+    config.put(&quot;APP_ENVIRONMENT&quot;, System.getenv(&quot;APP_ENVIRONMENT&quot;));
+    config.put(&quot;IMAGES_DIRECTORY&quot;, System.getenv(&quot;IMAGES_DIRECTORY&quot;));
+    config.put(&quot;PDF_DIRECTORY&quot;, System.getenv(&quot;PDF_DIRECTORY&quot;));
+    config.put(&quot;MIN_STOCK_COUNT&quot;, System.getenv(&quot;MIN_STOCK_COUNT&quot;));
+    return new ResponseEntity&lt;JSONObject&gt;(config, HttpStatus.OK);
+}
+...
+</code></pre>
+<p>We&#39;d like to control these variables dynamically at startup.</p>
+</li>
+<li><p>To the file <code>configuration-management/env-dev.conf</code> add the following definitions:</p>
+<pre><code class="lang-bash">APP_ENVIRONMENT=DEV
+IMAGES_DIRECTORY=/some/folder/for/dev/images
+PDF_DIRECTORY=/some/folder/for/dev/pdf
+MIN_STOCK_COUNT=2
+</code></pre>
+</li>
+<li><p>Copy the file <code>configuration-management/docker-compose.yml</code> to a new file <code>docker-compose-dev.yml</code>.</p>
+</li>
+<li><p>Open the file <code>docker-compose-dev.yml</code> and add the following to the <code>api</code> service:</p>
+<ul>
+<li><p>under <code>build</code>, a <code>dockerfile</code> line pointing at <code>Dockerfile-dev</code>.</p>
+</li>
+<li><p>and an <code>env_file</code> section with the file <code>env-dev.conf</code>.</p>
+</li>
+</ul>
+<p>After the changes, the <code>api</code> service should look as follows:</p>
+<pre><code class="lang-yaml">...
+  api:
+    build:
+       context: api
+       dockerfile: Dockerfile-dev
+    image: ddev_api
+    ports:
+      - &quot;8080:8080&quot;
+      - &quot;5005:5005&quot;
+    networks:
+      - front-tier
+      - back-tier
+    env_file:
+      - env-dev.conf
+...
+</code></pre>
+</li>
+<li><p>Run the application with the configuration file:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/configuration-management$ docker-compose \
+     -f docker-compose-dev.yml up -d --build
+</code></pre>
+</li>
+<li><p>Test the configuration:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl localhost:8080/api/show-config | jq
+</code></pre>
+<p>and you should see something like this:</p>
+<pre><code class="lang-json">{
+    &quot;PDF_DIRECTORY&quot;:&quot;/some/folder/for/dev/images&quot;,
+    &quot;IMAGES_DIRECTORY&quot;:&quot;/some/folder/for/dev/pdf&quot;,
+    &quot;APP_ENVIRONMENT&quot;:&quot;DEV&quot;,
+    &quot;MIN_STOCK_COUNT&quot;:&quot;2&quot;
+}
+</code></pre>
+<p>At this point, we have defined a hierarchy of images, from application base image, to release image, to development environment image that capture increasing levels of specificity at each tier. Also, we have successfully captured the environment variables for our developer environment in a configuration file referenced by a compose file dynamically at startup. </p>
+</li>
+<li><p>Tear down the app:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/configuration-management$ docker-compose \
+    -f docker-compose-dev.yml down
+</code></pre>
+</li>
+</ol>
+<h2 id="preparing-deployment-to-production">Preparing Deployment to Production</h2>
+<p>Next, let&#39;s take advantage of the hierarchy we&#39;ve set up to quickly and easily prepare to deploy to a production environment.</p>
+<ol>
+<li><p>In production, we want to use a real secret, not the mock in our <code>api:dev</code> image. In this case, there&#39;s no special config we need to insert into the image, since Docker&#39;s secrets functionality will do this for us. Simply retag our release image:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ docker image tag api:release api:prod
+</code></pre>
+<p>We&#39;ll see later how Docker Enterprise Edition can do such &#39;image promotion&#39; for us as part of an automated CI/CD chain, in order to automatically perform such a retagging.</p>
+</li>
+<li><p>Start up swarm mode if you haven&#39;t already, to use as our &#39;production environment&#39;, and then create a secret for use by our production app:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ docker swarm init
+ubuntu@infra:~$ echo &quot;gordonpass&quot; | docker secret create postgres_password -
+</code></pre>
+</li>
+<li><p>Define a new environment variable file <code>env-prod.conf</code> in the folder <code>configuration-management</code>:</p>
+<pre><code class="lang-bash">APP_ENVIRONMENT=PROD
+IMAGES_DIRECTORY=/some/folder/for/production/images
+PDF_DIRECTORY=/some/folder/for/production/pdf
+MIN_STOCK_COUNT=5
+</code></pre>
+</li>
+<li><p>Create a file <code>docker-compose-prod.yml</code> based on the existing <code>docker-compose.yml</code> that uses your new <code>api:prod</code> image, provisioning it with the secret and production environment-specific config file you just created.</p>
+<p>Here is how <code>docker-compose-prod.yml</code> could look like:</p>
+<pre><code class="lang-yaml">version: &quot;3.1&quot;
+
+services:
+  database:
+    build:
+       context: database
+    image: ddev_db
+    environment:
+      POSTGRES_USER: gordonuser
+      POSTGRES_DB: ddev
+    ports:
+      - &quot;5432:5432&quot;
+    networks:
+      - back-tier
+
+  api:
+    image: api:prod
+    ports:
+      - &quot;8080:8080&quot;
+      - &quot;5005:5005&quot;
+    networks:
+      - front-tier
+      - back-tier
+    secrets:
+      - postgres_password
+    env_file:
+      - env-prod.conf
+
+  ui:
+    build:
+      context: ui
+    image: ddev_ui
+    ports:
+      - &quot;3000:3000&quot;
+    networks:
+      - front-tier
+
+networks:
+  front-tier:
+  back-tier:
+
+secrets:
+  postgres_password:
+    external: true
+</code></pre>
+</li>
+<li><p>Run the production version:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/configuration-management$ docker stack deploy \
+    -c docker-compose-prod.yml prod
+</code></pre>
+</li>
+<li><p>Test the production version of your application to make sure it works as expected:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl localhost:8080/api/show-config | jq
+</code></pre>
+</li>
+<li><p>Clean up:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/configuration-management$ docker stack rm prod ; \
+    docker swarm leave -f
+</code></pre>
+</li>
+</ol>
+<h2 id="configuration-management-in-kubernetes">Configuration Management in Kubernetes</h2>
+<p>We have already seen how secrets are handled in Kubernetes. Let&#39;s now see how we can use ConfigMap objects to configure our application.</p>
+<ol>
+<li><p>In <code>kube.yaml</code>, notice the definition of a <code>ConfigMap</code> object:</p>
+<pre><code class="lang-yaml">apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: dev-config
+    namespace: ddev
+data:
+    APP_ENVIRONMENT: DEV
+    APP_IMAGES_DIRECTORY: &quot;/some/folder/for/dev/images&quot;
+    APP_PDF_DIRECTORY: &quot;/some/folder/for/dev/pdf&quot;
+    APP_MIN_STOCK_COUNT: &quot;2&quot;
+</code></pre>
+<p>We import this into a pod by name in the same file:</p>
+<pre><code class="lang-yaml">envFrom:
+- configMapRef:
+    name: dev-config
+</code></pre>
+</li>
+<li><p>Create the objects in Minikube:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/configuration-management$ kubectl apply -f kube.yaml
+</code></pre>
+<p>Note that the container will run in the pod executing this command: <code>/bin/sh -c &quot;env&quot;</code> which will output the list of all environment variables as seen by the container.</p>
+</li>
+<li><p>Now get the (sorted) log from the the container we just ran:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/configuration-management$ kubectl -n ddev \
+    logs po/config-test-pod | sort
+</code></pre>
+<p>it should look similar to this:</p>
+<pre><code class="lang-bash">APP_ENVIRONMENT=DEV
+APP_IMAGES_DIRECTORY=/some/folder/for/dev/images
+APP_MIN_STOCK_COUNT=2
+APP_PDF_DIRECTORY=/some/folder/for/dev/pdf
+HOME=/root
+HOSTNAME=config-test-pod
+KUBERNETES_PORT=tcp://10.96.0.1:443
+KUBERNETES_PORT_443_TCP=tcp://10.96.0.1:443
+...
+</code></pre>
+<p>as you can see, the <code>envFrom</code> key in our <code>kube.yaml</code> points to batches of environment variables to be defined in a running container, as defined by <code>ConfigMap</code> objects.</p>
+</li>
+<li><p>Clean up:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/configuration-management$ kubectl delete ns/ddev
+</code></pre>
+</li>
+</ol>
+<h2 id="optional-challenge-packaging-and-shipping">Optional Challenge: Packaging and Shipping</h2>
+<p>Now that we&#39;ve created two versions of our application for two different environments, let&#39;s package it up so we can deploy it easily on a remote datacenter.</p>
+<ol>
+<li><p>Create a git repo with two branches <code>dev</code> and <code>prod</code>, put the appropriate versions of your app in each, and push to GitHub.</p>
+</li>
+<li><p>Tag all the images your datacenter will need to pull appropriately, and push them to Docker Hub.</p>
+</li>
+<li><p>Log into your first AWS node (<code>ucp-manager</code>), and pull your project from GitHub.</p>
+</li>
+<li><p>Stand up your application configured for the dev environment.</p>
+</li>
+<li><p>Shut down your dev deployment, and stand up your application for the prod environment.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, we defined a simple hierarchy of images and config files that capture configuration at a few different steps. As a rule of thumb, configuration should live at the most general level of this hierarchy that makes sense. For example, it wouldn&#39;t make sense to mock your secret in your upstream release image, since the production image will mount a real secret instead. However, it&#39;s not necessary to put off mocking that secret to startup or runtime for your developer environment, so the correct place to mock that secret was in the developer environment image.</p>
+<p>By the same token, we left environment variables out of our images and defined them at startup in <code>env.conf</code> files in Swarm or via <code>ConfigMap</code> objects in Kubernetes, to maintain flexibility in their definition as long as possible. We could go a step further and push config definition all the way to runtime, by providing our containers with whatever information they need to query outside services (Hashicorp vaults, Consul KV stores...) dynamically while running.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

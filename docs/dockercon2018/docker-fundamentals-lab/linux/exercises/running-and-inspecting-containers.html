@@ -1,0 +1,94 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="running-inspecting-containers">Running &amp; Inspecting Containers</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Start a container</li>
+<li>List running and stopped containers</li>
+</ul>
+<h2 id="running-containers">Running Containers</h2>
+<ol>
+<li><p>First, let&#39;s start a container, and observe the output:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker container run centos:7 echo &quot;hello world&quot;
+
+Unable to find image &#39;centos:7&#39; locally
+7: Pulling from library/centos
+256b176beaff: Pull complete 
+Digest: sha256:6f6d986d425aeabdc3a02cb61c02abb2e78e57357e92417d6d58332856024faf
+Status: Downloaded newer image for centos:7
+hello world
+</code></pre>
+<p>The <code>centos:7</code> part of the command indicates the <em>image</em> we want to use to define this container; it defines a private filesystem for the container. <code>echo &quot;hello world&quot;</code> is the process we want to execute inside the kernel namespaces created when we use <code>docker container run</code>.</p>
+<p>Since we&#39;ve never used the <code>centos:7</code> image before, first Docker downloads it, and then runs our <code>echo &quot;hello world&quot;</code> process inside a contianer, sending the STDOUT stream of that process to our terminal by default.</p>
+</li>
+<li><p>Now create another container from the same image, and run a different process inside of it:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker container run centos:7 ps -ef
+
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 14:28 ?        00:00:00 ps -ef
+</code></pre>
+<p>No download this time, and we can see that our containerized process (<code>ps -ef</code> in this case) is PID 1 inside the container.</p>
+</li>
+<li><p>Try doing <code>ps -ef</code> at the host prompt and see what process is PID 1 here.</p>
+</li>
+</ol>
+<h2 id="listing-containers">Listing Containers</h2>
+<ol>
+<li><p>Try listing all your currently running containers:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker container ls
+</code></pre>
+<p>There&#39;s nothing listed, since the containers you ran executed a single command, and shut down when finished.</p>
+</li>
+<li><p>List stopped as well as running containers with the <code>-a</code> flag:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker container ls -a
+
+CONTAINER ID  IMAGE      COMMAND                CREATED              STATUS                          ...
+a525daef85ab  centos:7   &quot;ps -ef&quot;               About a minute ago   Exited (0) About a minute ago   ...
+db6aabba5157  centos:7   &quot;echo &#39;hello world&#39;&quot;   3 minutes ago        Exited (0) 3 minutes ago        ...
+</code></pre>
+<p>We can see our exited containers this time, with a time and exit code in the <code>STATUS</code> column.</p>
+<blockquote>
+<p><strong>Where did those names come from?</strong> We truncated the above output table, but in yours you should also see a <code>NAMES</code> column with some funny names. All containers have names, which in most Docker CLI commands can be substituted for the container ID as we&#39;ll see in later exercises. By default, containers get a randomly generated name of the form <code>&lt;adjective&gt;_&lt;scientist / technologist&gt;</code>, but you can choose a name explicitly with the <code>--name</code> flag in <code>docker container run</code>.</p>
+</blockquote>
+</li>
+<li><p>Clean up all containers using this command:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker container rm -f $(docker container ls -aq)
+</code></pre>
+<p>Please discuss with your peers what the above command exactly does.</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise you ran your first container using <code>docker container run</code>, and explored the importance of the PID 1 process in a container; this process is a member of the host&#39;s PID tree like any other, but is &#39;containerized&#39; via tools like kernel namespaces, making this process and its children behave as if it was the root of a PID tree, with its own filesystem, mountpoints, and network stack. The PID 1 process in a container defines the lifecycle of the container itself; when one exits, so does the other.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

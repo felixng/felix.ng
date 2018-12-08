@@ -1,0 +1,107 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="debugging-in-a-container">Debugging in a Container</h1>
+<p>In this exercise we are going to explore how applications can be debugged line by line even when running in a container.</p>
+<p>The project folder for this exercise is <code>~/ddev-labs/debugging</code>.</p>
+<p>Note this exercise relies on an IDE (Eclipse); to use this on <code>infra</code>, you&#39;ll need to connect to the remote desktop on that node; see instructions for this in <a href="connecting-to-the-remote-desktop.md">the Remote Desktop appendix</a> of this exercise book.</p>
+<h2 id="debug-the-java-api">Debug the Java API</h2>
+<p>For this you need an IDE capable of remote debugging Java applications. In this sample we&#39;ll use Eclipse.</p>
+<ol>
+<li><p>Eclipse is pre-installed on your remote desktop; if you&#39;d like to try this exercise on your own machine and don&#39;t already have Eclipse, download it from <a href="https://www.eclipse.org/downloads/">https://www.eclipse.org/downloads/</a> and install it. </p>
+</li>
+<li><p>Run the application with:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/debugging$ docker-compose \
+    -f docker-compose-api.yml up --build
+</code></pre>
+<p>Note how we&#39;re using the <code>docker-compose-api.yml</code> file to describe the app which in turn uses <code>api/Dockerfile-dev</code> to build the API image. This Dockerfile contains a special <code>ENTRYPOINT</code> to configure Java and SpringBoot for debugging:</p>
+<pre><code class="lang-dockerfile">ENTRYPOINT [&quot;java&quot;, \
+    &quot;-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005&quot;,&quot;-jar&quot;, \
+    &quot;/app/ddev-0.0.1-SNAPSHOT.jar&quot;]
+</code></pre>
+</li>
+<li><p>Open Eclipse, and import the Java/Maven project: select <strong>File-&gt;Import</strong> and then select <strong>Maven-&gt;Existing Maven Project</strong> and hit <strong>Next</strong>. </p>
+</li>
+<li><p>In the &quot;Import Maven Projects&quot; dialog box navigate to the folder <code>~/ddev-labs/debugging</code> and click <strong>OK</strong>. Make sure the project <code>/api/pom.xml</code> is selected and click <strong>Finish</strong>.</p>
+<p><img src="../images/maven-import.png" alt="">/</p>
+<blockquote>
+<p>Note: If you still see the empty &quot;Welcome&quot; screen of Eclipse, close it by clicking the dismiss button of that screen.</p>
+</blockquote>
+</li>
+<li><p>Create a new <strong>Debug configuration</strong> by selecting <strong>Run--&gt;Debug Configurations...</strong>. In the dialog box <em>Debug Configurations</em>, select <strong>Remote Java Application</strong> and click the <strong>New launch configuration</strong> button (white rectangular icon with a tiny yellow + above the list containing <em>Remote Java Application</em>) to create such a new configuration.</p>
+</li>
+</ol>
+<ol>
+<li><p>Fill in the fields as follows:</p>
+<p><img src="../images/debug-configuration.png" alt="">/</p>
+</li>
+<li><p>Click <strong>Apply</strong> and then <strong>Debug</strong>. Notice in the terminal how the Java application gets initialized. You should see something along the line of this (shortened for brevity):</p>
+<pre><code class="lang-bash">apiserver_1  |
+apiserver_1  |   .   ____          _            __ _ _
+apiserver_1  |  /\\ / ___&#39;_ __ _ _(_)_ __  __ _ \ \ \ \
+apiserver_1  | ( ( )\___ | &#39;_ | &#39;_| | &#39;_ \/ _` | \ \ \ \
+apiserver_1  |  \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+apiserver_1  |   &#39;  |____| .__|_| |_|_| |_\__, | / / / /
+apiserver_1  |  =========|_|==============|___/=/_/_/_/
+apiserver_1  |  :: Spring Boot ::        (v1.5.3.RELEASE)
+apiserver_1  |
+apiserver_1  | 2017-07-06 20:34:05.836  INFO 1 --- [           main] com.docker.ddev.DdevApp                  : Starting DdevApp v0.0.1-SNAPSHOT on 7d34254bb968 with PID 1 (/app/ddev-0.0.1-SNAPSHOT.jar started by root in /app)
+apiserver_1  | 2017-07-06 20:34:05.847  INFO 1 --- [           main] com.docker.ddev.DdevApp                  : The following profiles are active: postgres
+...
+apiserver_1  | 2017-07-06 20:34:22.005  INFO 1 --- [           main] o.s.j.e.a.AnnotationMBeanExporter        : Registering beans for JMX exposure on startup
+apiserver_1  | 2017-07-06 20:34:22.007  INFO 1 --- [           main] o.s.j.e.a.AnnotationMBeanExporter        : Bean with name &#39;dataSource&#39; has been autodetected for JMX exposure
+apiserver_1  | 2017-07-06 20:34:22.016  INFO 1 --- [           main] o.s.j.e.a.AnnotationMBeanExporter        : Located MBean &#39;dataSource&#39;: registering with JMX server as MBean [com.zaxxer.hikari:name=dataSource,type=HikariDataSource]
+apiserver_1  | 2017-07-06 20:34:22.164  INFO 1 --- [           main] s.b.c.e.t.TomcatEmbeddedServletContainer : Tomcat started on port(s): 8080 (http)
+apiserver_1  | 2017-07-06 20:34:22.180  INFO 1 --- [           main] com.docker.ddev.DdevApp                  : Started DdevApp in 17.466 seconds (JVM running for 27.352)
+</code></pre>
+</li>
+<li><ul>
+<li>Navigate <strong>Window -&gt; Show View -&gt; Navigator</strong>. </li>
+<li>Set a breakpoint in the class <code>api/src/main/java/com/docker/ddev/controller/PetController.java</code> at the line <code>logger.info(&quot;Fetching random Pet&quot;);</code> by doubleclicking on the corresponding line number.</li>
+</ul>
+</li>
+<li><p>In a terminal window use <code>curl</code> to target the endpoint <code>/api/pet</code>:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl localhost:8080/api/pet
+</code></pre>
+<p>Notice how the breakpoint in Eclipse is hit and we&#39;re able to debug the code line by line now. (You may be asked to open a new view in Eclipse - go ahead and click Yes, and it&#39;ll take you to the debug terminal).</p>
+<p><img src="../images/debug-java.png" alt="">/</p>
+</li>
+<li><p>When done exit the application from your terminal with <code>CTRL+C</code> and remove it with:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/debugging$ docker-compose -f docker-compose.debug.yml down
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this lab we have demonstrated line by line debugging of code running in a container. For this lab we have used Eclipse, but other IDEs such as Visual Studio 2015/2017, IntellJ or PyCharm offer similar possibilities.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

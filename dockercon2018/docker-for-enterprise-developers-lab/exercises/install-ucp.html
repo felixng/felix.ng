@@ -1,0 +1,89 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="installing-ucp">Installing UCP</h1>
+<p>Universal Control Plane provides role based access control and a secure API as well as automatically bootstrapping Kubernetes; it forms the basis for any managed Docker cluster, such as the development and testing pipelines we ultimately want to set up. In this exercise, we&#39;ll start by creating a simple, non-production deployment of UCP.</p>
+<h2 id="setting-up-a-swarm">Setting up a Swarm</h2>
+<ol>
+<li><p>On <code>ucp-manager</code>, fetch the join token for your swarm:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker swarm join-token worker
+</code></pre>
+</li>
+<li><p>Paste the swarm join token into each of <code>ucp-node-0</code> and <code>ucp-node-1</code>. Each of these nodes will join the swarm as workers.</p>
+</li>
+</ol>
+<h2 id="installing-ucp">Installing UCP</h2>
+<ol>
+<li><p>Run the following script to install UCP on <code>ucp-manager</code>:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ UCP_IP=&lt;ucp-manager public IP&gt;
+[centos@ucp-manager ~]$ UCP_FQDN=&lt;ucp-manager FQDN&gt;
+[centos@ucp-manager ~]$ docker container run --rm -it --name ucp \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    docker/ucp:3.1.0 install \
+    --admin-username admin \
+    --admin-password adminadmin \
+    --san ${UCP_IP} \
+    --san ${UCP_FQDN}
+</code></pre>
+<p>Note, this will take a while since the UCP installer will recognize all nodes of your swarm and configure them accordingly.</p>
+</li>
+<li><p>Once installed, open a browser at <code>https://&lt;UCP-IP&gt;</code> and login to UCP using your admin username and password. You&#39;ll need to upload a license for UCP. If you don&#39;t yet have one, get a free trial license at <a href="https://store.docker.com/">store.docker.com</a>.</p>
+</li>
+<li><p>Click on <strong>Nodes</strong> on the left hand side and make sure you can see the 3 nodes of your cluster and that they are all in status <strong>Healthy UCP manager</strong> or <strong>Healthy UCP worker</strong>.</p>
+</li>
+<li><p>Please also note that UCP has transparently installed Kubernetes on your swarm too. Each worker node can now be used to either host swarm or Kubernetes workload or both. The latter is not recommended in production though.</p>
+</li>
+</ol>
+<h2 id="uninstalling-ucp">Uninstalling UCP</h2>
+<blockquote>
+<p><strong>STOP</strong>: Only do this if your installation failed and you need to start over!</p>
+</blockquote>
+<p>If for some reason we need to uninstall UCP we can use the following commands.</p>
+<ol>
+<li><p>Remove UCP:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker container run --rm -it --name ucp \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    docker/ucp:3.1.0 uninstall-ucp \
+    --id &lt;UCP ID&gt;
+</code></pre>
+<p><strong>Note:</strong> to find out the <code>&lt;UCP ID&gt;</code> we can first run the above command without the <code>--id</code> parameter. The command will fail and tell us which ID to use.</p>
+</li>
+<li><p>Clean up orphaned resources:</p>
+<pre><code class="lang-bash">[centos@ucp-manager ~]$ docker system prune -f
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this lab you have installed UCP on an existing Docker swarm; in fact, all of UCP&#39;s functionality is provided by containers running across your swarm. UCP automatically recognized and configured all nodes of the pre-existing swarm, but you can also add more worker and managers to UCP just like you did for a regular swarm, at any time. UCP will automatically recognize and configure the new nodes as you join them to the swarm.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

@@ -1,0 +1,418 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="health-checks">Health Checks</h1>
+<p>In this exercise we&#39;re going to extend the Java API of our workshop sample application with a health check.</p>
+<h2 id="health-checks-in-swarm">Health Checks in Swarm</h2>
+<p>The project folder for this exercise is <code>~/ddev-labs/health-checks</code>.</p>
+<h3 id="implementing-a-health-endpoint">Implementing a Health Endpoint</h3>
+<ol>
+<li><p>Open the file <code>api/src/main/java/com/docker/ddev/controller/UtilityController.java</code>, and add the following healthcheck route, immediately under the <code>JdbcTemplate</code> declaration in the <code>UtilityController</code> class:</p>
+<pre><code class="lang-bash">@SuppressWarnings(&quot;unchecked&quot;)
+@RequestMapping(value=&quot;/healthcheck&quot;, method = RequestMethod.GET)
+public ResponseEntity&lt;?&gt; healthCheck() {
+    logger.info(&quot;Performing healthcheck&quot;);
+    if(unhealthy) {
+        return new ResponseEntity&lt;Object&gt;(new CustomErrorType(&quot;API unhealthy.&quot;),
+            HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    JSONObject healthcheck = new JSONObject();
+    try
+    {
+        String sql = &quot;SELECT to_char(current_timestamp, &#39;YYYY-MM-DD HH24:MI&#39;)&quot;;
+        String status = jdbcTemplate.queryForObject(sql, String.class);         
+        healthcheck.put(&quot;status&quot;, status);
+    } catch (Exception e) {
+        logger.warn(&quot;An exception occurred while checking the database: {}&quot;, e);
+        return new ResponseEntity&lt;Object&gt;(new CustomErrorType(&quot;Database not responding.&quot;),
+            HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    return new ResponseEntity&lt;JSONObject&gt;(healthcheck, HttpStatus.OK);
+}
+</code></pre>
+<p>Our healthcheck checks a boolean that flags an unhealthy state, as well as performs its own check on database connectivity. If either fail, a server error is returned. Otherwise, the healthcheck responds with a 200 / OK.</p>
+</li>
+</ol>
+<h3 id="adjusting-the-dockerfile-and-building-the-images">Adjusting the Dockerfile and building the Images</h3>
+<ol>
+<li><p>Open the file <code>api/Dockerfile</code>, and note that after the second <code>FROM</code> we have added an instruction to install <code>curl</code> as follows:</p>
+<pre><code class="lang-dockerfile">...
+FROM java:8-jdk-alpine
+RUN apk update &amp;&amp; apk add curl
+...
+</code></pre>
+<p>We need <code>curl</code> inside our container to probe the healthcheck endpoint.</p>
+</li>
+<li><p>Build, tag, and push images for all three services of the application by running the provided <code>build-and-push.sh</code> script:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-checks$ export MY_DOCKER_ID=&lt;Docker ID&gt;
+ubuntu@infra:~/ddev-labs/health-checks$ bash build-and-push.sh
+</code></pre>
+</li>
+</ol>
+<h3 id="running-the-application-with-health-checks-in-a-swarm">Running the Application with Health Checks in a Swarm</h3>
+<ol>
+<li><p>Make sure your <code>infra</code> node is running in swarm mode. If not please create a swarm with <code>docker swarm init</code>.</p>
+</li>
+<li><p>In the <code>health-checks</code> folder there is a file called <code>my-stack.yml</code> with the following content. We will be using it to run our application as a <em>stack</em>, which is much the same as an application run using Docker Compose, but taking advantage of all the features of Docker Swarm Mode.  Note that we&#39;re using our Docker Hub username.  This will allow each host within our swarm to pull the image used by each service.</p>
+<pre><code class="lang-yaml">version: &quot;3.1&quot;
+
+services:
+  database:
+    image: ${MY_DOCKER_ID}/ddev-db:1.0
+    environment:
+      POSTGRES_USER: gordonuser
+      POSTGRES_DB: ddev
+    ports:
+      - &quot;5432:5432&quot;
+    networks:
+      - back-tier
+    secrets:
+      - postgres_password
+
+  api:
+    image: ${MY_DOCKER_ID}/ddev-api:1.0
+    ports:
+      - &quot;8080:8080&quot;
+      - &quot;5005:5005&quot;
+    networks:
+      - front-tier
+      - back-tier
+    secrets:
+      - postgres_password
+    healthcheck:
+        test: [&quot;CMD&quot;, &quot;curl&quot;, &quot;-f&quot;, &quot;http://localhost:8080/utility/healthcheck&quot;]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+
+  ui:
+    image: ${MY_DOCKER_ID}/ddev-ui:1.0
+    ports:
+      - &quot;3000:3000&quot;
+    networks:
+      - front-tier
+
+secrets:
+  postgres_password:
+    file: ./devsecrets/postgres_password
+
+networks:
+  front-tier:
+  back-tier:
+</code></pre>
+<p>Please note the section <code>healthcheck</code> in the details of the service <code>api</code>. We&#39;re doing a health check every 30 seconds. On each check we timeout after 10 seconds. Finally, we assume that the service task is dead after three consecutive failures.</p>
+</li>
+<li><p>Please discuss with your peers what exactly the above <code>test</code> command in the <code>healthcheck</code> section does. For more details see <a href="https://docs.docker.com/engine/reference/builder/#healthcheck">https://docs.docker.com/engine/reference/builder/#healthcheck</a>.</p>
+</li>
+<li><p>Create a stack:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-checks$ docker stack deploy -c my-stack.yml app
+</code></pre>
+<p>Give it some time to start up. The following command:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-checks$ watch docker stack ps app
+</code></pre>
+<p>should eventually show this:</p>
+<pre><code class="lang-bash">Every 2.0s: docker stack ps app                                                                                                                                     Anubis.local: Fri Jul 14 10:09:04 2017
+
+ID                  NAME                IMAGE         ... CURRENT STATE        
+n6uvhy7rxmux        app_ui.1            ddev-ui:1.0       Running 6 minutes ago
+woky0lgjcnj1        app_api.1           ddev-api:1.0      Running 6 minutes ago
+kwhwz3olk5j6        app_database.1      ddev-db:1.0       Running 6 minutes ago
+</code></pre>
+</li>
+<li><p>List all containers of the <code>app</code> stack:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-checks$ docker container ls | grep app_
+</code></pre>
+<p>which should show something similar to this:</p>
+<pre><code class="lang-bash">6b4f28d713da   ddev-ui:1.0    &quot;/bin/sh -c &#39;node ...&quot;   8 minutes ago   Up 8 minutes             
+5cd074b02131   ddev-api:1.0   &quot;java -jar /app/dd...&quot;   8 minutes ago   Up 8 minutes (healthy)
+478f3f1295ba   ddev-db:1.0    &quot;docker-entrypoint...&quot;   8 minutes ago   Up 8 minutes
+</code></pre>
+<p>Please note the <code>(healthy)</code> in the <code>STATUS</code> column of the <code>api</code> container.</p>
+</li>
+<li><p>Test whether the <code>api</code> healthcheck works:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-checks$ curl localhost:8080/utility/healthcheck
+</code></pre>
+<p>it should return something like:</p>
+<pre><code class="lang-bash">{&quot;status&quot;:&quot;2017-07-14 15:03&quot;}
+</code></pre>
+</li>
+<li><p>Test whether the app runs as expected:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-checks$ curl localhost:3000/pet; echo
+</code></pre>
+<p>we should get the HTML for the cat view. Everything seems healthy and functioning correctly at this point.</p>
+</li>
+</ol>
+<h3 id="responding-to-health-failure">Responding to Health Failure</h3>
+<p>Now we&#39;re going to artificially trigger an unhealthy state in our application.</p>
+<ol>
+<li><p>Notice in the <code>UtilityController</code> class you modified above, there is an additional route <code>simulate-failure</code>. Of course you would never have such a route in a real application, but in this case we include it to conveniently induce an unhealthy application state.</p>
+</li>
+<li><p>Monitor the containers:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-checks$ watch docker container ls
+</code></pre>
+</li>
+<li><p>Open another terminal and watch the <code>api</code> service:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-checks$ watch docker service ps app_api
+</code></pre>
+</li>
+<li><p>And in a third terminal window trigger the failure of the <code>api</code>:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-checks$ curl \
+    localhost:8080/utility/simulate-failure ; echo
+</code></pre>
+</li>
+<li><p>Observe what is happening (be patient). How long will you have to wait until failure is reported? Play with the <code>healthcheck</code> settings in the stack file to make your wait shorter.</p>
+</li>
+<li><p>Don&#39;t forget to clean up after yourself:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-checks$ docker stack rm app
+</code></pre>
+</li>
+</ol>
+<h2 id="health-checks-in-kubernetes">Health Checks in Kubernetes</h2>
+<p>The project folder for this part of the exercise is <code>~/ddev-labs/health-check-kube</code>.</p>
+<h3 id="implementing-a-health-endpoint">Implementing a Health Endpoint</h3>
+<ol>
+<li><p>Open the file <code>main.py</code> and note the endpoint <code>/health</code> used for health checks:</p>
+<pre><code class="lang-python">...
+@app.route(&quot;/health&quot;, methods=[&#39;GET&#39;])
+def get_health():
+    if healthy == True:
+        return &#39;OK&#39;, 200
+    return &#39;NOT OK&#39;, 500
+...
+</code></pre>
+<p>we return OK (200) if a global variable is <code>True</code>, otherwise we return NOT OK (500).</p>
+</li>
+<li><p>Open the file <code>kube.yaml</code> and note the <code>livenessProbe</code> part in the YAML:</p>
+<pre><code class="lang-yaml">...
+livenessProbe:
+  exec:
+    command:
+    - curl
+    - -f
+    - http://localhost:8000/health
+  initialDelaySeconds: 5
+  periodSeconds: 5
+</code></pre>
+<p>we&#39;re using a command to check the health endpoint: <code>curl -f http://localhost:8000/health</code>.</p>
+</li>
+<li><p>Create the pod:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-check-kube$ kubectl create -f kube.yaml
+</code></pre>
+</li>
+<li><p>Use the <code>describe</code> command to observe the pod:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-check-kube$ kubectl describe pod/liveness-exec
+</code></pre>
+<p>which should show something like this (shortened):</p>
+<pre><code class="lang-bash">...
+Events:
+  Type     Reason                 Age              From               Message
+  ----     ------                 ----             ----               -------
+  Normal   Scheduled              16m              default-scheduler  Successfully assigned liveness-exec to minikube
+  Normal   SuccessfulMountVolume  16m              kubelet, minikube  MountVolume.SetUp succeeded for volume    &quot;default-token-6lk8g&quot;
+  Normal   Pulling                16m              kubelet, minikube  pulling image &quot;training/liveness:1.0&quot;
+  Normal   Pulled                 15m              kubelet, minikube  Successfully pulled image &quot;training/liveness:1.0&quot;
+  Normal   Created                15m              kubelet, minikube  Created container
+  Normal   Started                15m              kubelet, minikube  Started container
+</code></pre>
+</li>
+<li><p>Now after we have confirmed that the pod runs normally when the health endpoint reports OK, it is time to see what&#39;s happening when the container running inside the pod becomes unhealthy. For this we run a shell inside the container:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-check-kube$ kubectl exec -it liveness-exec -- /bin/sh
+</code></pre>
+</li>
+<li><p>Once inside the container we use <code>curl</code> to set the value of the global <code>health</code> variable in the app to <code>False</code>:</p>
+<pre><code class="lang-bash"># curl -X POST localhost:8000/health/bad; echo
+</code></pre>
+</li>
+<li><p>We can double check that the health endpoint now reports NOT OK:</p>
+<pre><code class="lang-bash"># curl -I localhost:8000/health
+</code></pre>
+<p>which gives us something like this:</p>
+<pre><code class="lang-bash">HTTP/1.0 500 INTERNAL SERVER ERROR
+Content-Type: text/html; charset=utf-8
+Content-Length: 6
+Server: Werkzeug/0.14.1 Python/2.7.14
+Date: Tue, 13 Feb 2018 19:40:53 GMT
+</code></pre>
+</li>
+<li><p>Leave the container by typing <code>exit</code>.</p>
+</li>
+<li><p>And check the status of the pod after this:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-check-kube$ kubectl describe pod/liveness-exec
+</code></pre>
+<p>which returns this (shortened):</p>
+<pre><code class="lang-bash">...
+Events:
+  Type     Reason                 Age              From               Message
+  ----     ------                 ----             ----               -------
+  Normal   Scheduled              2h               default-scheduler  Successfully assigned liveness-http to minikube
+  Normal   SuccessfulMountVolume  2h               kubelet, minikube  MountVolume.SetUp succeeded for volume    &quot;default-token-6lk8g&quot;
+  Warning  Unhealthy              1m (x3 over 1m)  kubelet, minikube  Liveness probe failed: HTTP probe failed with     statuscode: 500
+  Normal   Pulled                 1m (x2 over 2h)  kubelet, minikube  Container image &quot;training/liveness:1.0&quot; already     present on machine
+  Normal   Created                1m (x2 over 2h)  kubelet, minikube  Created container
+  Normal   Started                1m (x2 over 2h)  kubelet, minikube  Started container
+  Normal   Killing                1m               kubelet, minikube  Killing container with id     docker://liveness:Container failed liveness probe.. Container will be killed and recreated.
+</code></pre>
+<p>Evidently the pod is killed after 3 unsuccessful retries to probe the health endpoint and then restarted. Kubernetes will abort this process of killing and creating the pod after a few times.</p>
+</li>
+<li><p>Do the very same as above with a liveness probe base on an HTTP call. Use <code>kube2.yaml</code> for this; the pod will be called <code>liveness-http</code> this time.</p>
+</li>
+<li><p>Cleanup:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/health-check-kube$ kubectl delete pod/liveness-exec
+ubuntu@infra:~/ddev-labs/health-check-kube$ kubectl delete pod/liveness-http
+</code></pre>
+</li>
+</ol>
+<h2 id="optional-challenge-health-check-endpoint-in-python">Optional Challenge: Health Check Endpoint in Python</h2>
+<blockquote>
+<p>In order to be able to complete this optional exercise, you must have completed <em>Exercise with Python/Flask API backed by Mongo DB</em> in the API Tests chapter.</p>
+</blockquote>
+<h3 id="creating-the-application">Creating the application</h3>
+<ol>
+<li><p>Add a GET endpoint <code>/health</code> to the API defined in <code>~/ddev-labs/api-tests-flask/api/main.py</code>:</p>
+<pre><code class="lang-python">healthy = True
+
+@app.route(&quot;/health&quot;, methods=[&#39;GET&#39;])
+def get_health():
+    if healthy == True:
+        return &#39;OK&#39;, 200
+    return &#39;NOT OK&#39;, 500
+</code></pre>
+</li>
+<li><p>Add a POST endpoint <code>/health/&lt;status&gt;</code> to the API which will be used to simulate a healthy or unhealthy service:</p>
+<pre><code class="lang-python">@app.route(&quot;/health/&lt;status&gt;&quot;, methods=[&#39;POST&#39;])
+def set_health(status):
+    global healthy
+    if status.lower() == &quot;good&quot;:
+        healthy = True;
+    else:
+        healthy = False;
+    return &#39;OK&#39;, 200
+</code></pre>
+</li>
+<li><p>Build the image. Remember we called it <code>api-tests</code>.</p>
+</li>
+<li><p>Run a container from this image:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/api-tests-flask/api$ docker container run --rm -it \
+    -p 8000:8000 api-tests
+</code></pre>
+</li>
+<li><p>Open another terminal and query the <code>health</code> endpoint:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl localhost:8000/health
+</code></pre>
+<p>The result should be: <code>OK</code></p>
+</li>
+<li><p>Switch the health to bad:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl -X POST localhost:8000/health/bad
+</code></pre>
+</li>
+<li><p>Probe the <code>/health</code> endpoint again. This time the result should be: <code>NOT OK</code>.</p>
+</li>
+<li><p>Set the status to <code>good</code> again and make sure the <code>/health</code> endpoint returns <code>OK</code>.</p>
+</li>
+<li><p>Kill the container.</p>
+</li>
+</ol>
+<h3 id="defining-the-health-check-command">Defining the Health Check Command</h3>
+<p>Now we need to define the command that Docker swarm will use to check the health of the service. We can do this in the <code>Dockerfile</code>.</p>
+<ol>
+<li><p>Open the <code>Dockerfile</code> in the <code>api</code> sub-folder.</p>
+</li>
+<li><p>Add the following line to it just before the definition of the <code>ENTRYPOINT</code>:</p>
+<pre><code class="lang-dockerfile">HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
+</code></pre>
+</li>
+<li><p>Please discuss with your neighbor what exactly the above command does. For more details see <a href="https://docs.docker.com/engine/reference/builder/#healthcheck">https://docs.docker.com/engine/reference/builder/#healthcheck</a></p>
+</li>
+<li><p>Build the image again.</p>
+</li>
+</ol>
+<h3 id="running-a-service-with-health-check">Running a Service with Health Check</h3>
+<p>Now we want to run the API as a service.</p>
+<ol>
+<li><p>Make sure your Docker host is running in swarm mode. If not please init a swarm.</p>
+</li>
+<li><p>Create a file called <code>api-tests-flask/my-stack.yml</code> and add the following content:</p>
+<pre><code class="lang-yaml">version: &#39;3.1&#39;
+services:
+    api:
+        image: api-tests
+        ports:
+            - 8000:8000
+        healthcheck:
+            interval: 2s
+            timeout: 2s
+            retries: 3
+</code></pre>
+<p>Gist: <a href="http://bit.ly/2v0UCEb">http://bit.ly/2v0UCEb</a></p>
+</li>
+<li><p>Save the file.</p>
+</li>
+<li><p>Deploy the stack using the above stack file:</p>
+<pre><code class="lang-bash">ubuntu@infra:~/ddev-labs/api-tests-flask$ docker stack deploy -c my-stack.yml api
+</code></pre>
+</li>
+<li><p>Now open a second terminal and run the following command to observe the <code>api-tests</code> service:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ watch docker service ps api_api
+</code></pre>
+<p>you should see something like this:</p>
+<pre><code class="lang-bash">Every 2.0s: docker service ps api_api
+
+ID            NAME       IMAGE      NODE  DESIRED STATE  CURRENT STATE
+a1cqlkz8jfpg  api_api.1  api-tests  moby  Running        Running 20 seconds ago
+</code></pre>
+<p>As we can see, the service is up and running happily.</p>
+</li>
+<li><p>In another terminal window set the health of the service to <code>bad</code>:</p>
+<pre><code class="lang-bash">ubuntu@infra:~$ curl -X POST localhost:8000/health/bad
+</code></pre>
+</li>
+<li><p>Observe what is happening in the window running the <code>watch</code> command. Give it at least 16 sec. or so.</p>
+</li>
+<li><p>With your neighbor discuss what you saw and why this happened. Specifically discuss why it took approx. 16 seconds until something happened. The result should look something like this:</p>
+<pre><code class="lang-bash">ID            NAME           IMAGE      NODE  DESIRED STATE  CURRENT STATE           ERROR                             PORTS
+u2dfxl7snj26  api_api.1      api-tests  moby  Running        Running 16 seconds ago
+t5agzq65t8ez   \_ api_api.1  api-tests  moby  Shutdown       Failed 25 seconds ago   &quot;task: non-zero exit (137): do  &quot;
+</code></pre>
+</li>
+<li><p>Try to query the <code>/health</code> endpoint. What do you see?</p>
+</li>
+<li><p>Set the service to unhealthy again and observe.</p>
+</li>
+<li><p>For a third time set the service to unhealthy but after approx. 4 to 5 sec. set it back to healthy. What happens? What happens if you wait longer than 6 sec. but less than 16 sec.?</p>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>As a developer, you know best what it means for your application to be healthy. Bearing in mind that there could be an enormous number of instances of your application being scheduled across a datacenter (an order of magnitude more once containerized compared to VMs is not uncommon), it is a crucial responsibility for you to write healthcheck endpoints for all your containerized software. That way, your orchestrator (and not your ops team) can take responsibility for maintaining the health of your application.</p>
+<p>Also notice the orchestrator&#39;s &quot;shoot first&quot; mentality; no actions are taken to try and fix an unhealthy container. It is simply killed and replaced with a fresh container. Make sure to plan for this: if your container enters an unhealthy state, it should try and log what&#39;s wrong, finish transactions, push valuable stateful information out to somewhere it can be recovered, and generally take action to compensate for the fact that it is about to be terminated.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>

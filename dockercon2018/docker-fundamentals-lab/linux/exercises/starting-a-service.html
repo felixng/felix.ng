@@ -1,0 +1,176 @@
+<html>
+<head>
+    <title></title>
+    <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' integrity='sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u' crossorigin='anonymous'>
+    <link href="/app.css" rel="stylesheet" >
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><img class="logo" src="https://www.docker.com/sites/all/themes/docker/assets/images/brand-full.svg" alt="Docker" title="Docker"/></a>
+        </div>
+    </div><!-- /.container-fluid -->
+    </nav>
+    <div class="container">
+    <div class="row">
+        <h1></h1>
+        <div class="content">
+            <h1 id="starting-a-service">Starting a Service</h1>
+<p>By the end of this exercise, you should be able to:</p>
+<ul>
+<li>Schedule a docker service across a swarm</li>
+<li>Predict and understand the scoping behavior of docker overlay networks</li>
+<li>Scale a service on swarm up or down</li>
+<li>Force swarm to spread workload out across user-defined divisions in a datacenter</li>
+</ul>
+<h2 id="creating-an-overlay-network-and-service">Creating an Overlay Network and Service</h2>
+<ol>
+<li><p>Create a multi-host overlay network to connect your service to:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker network create --driver overlay my_overlay
+</code></pre>
+</li>
+<li><p>Verify that the network subnet was taken from the address pool defined when creating your swarm:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker network inspect my_overlay
+
+...
+&quot;Subnet&quot;: &quot;10.85.0.0/25&quot;,
+&quot;Gateway&quot;: &quot;10.85.0.1&quot;
+...
+</code></pre>
+<p>The overlay network has been assigned a subnet from the address pool we specified when creating our swarm.</p>
+</li>
+<li><p>Create a service featuring an <code>alpine</code> container pinging Google resolvers, plugged into your overlay network:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service create --name pinger \
+    --network my_overlay alpine ping 8.8.8.8
+</code></pre>
+<p>Note the syntax is a lot like <code>docker container run</code>; an image (<code>alpine</code>) is specified, followed by the PID 1 process for that container (<code>ping 8.8.8.8</code>).</p>
+</li>
+<li><p>Get some information about the currently running services:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service ls
+</code></pre>
+</li>
+<li><p>Check which node the container was created on:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service ps pinger
+</code></pre>
+</li>
+<li><p>SSH into the node you found in the last step (call this <code>node-x</code>), find the container ID with <code>docker container ls</code>, and check its logs with <code>docker container logs &lt;container ID&gt;</code>. The results of the ongoing ping should be visible.</p>
+</li>
+<li><p>Inspect the <code>my_overlay</code> network on the node running your pinger container:</p>
+<pre><code class="lang-bash">[centos@node-x ~]$ docker network inspect my_overlay
+</code></pre>
+<p>You should be able to see the container connected to this network, and a list of swarm nodes connected to this network under the <code>Peers</code> key. Also notice the correspondence between the container IPs and the subnet assigned to the network under the <code>IPAM</code> key - this is the subnet from which container IPs on this network are drawn.</p>
+</li>
+<li><p>Connect to your worker node, <code>node-3</code>, and list your networks: </p>
+<pre><code class="lang-bash">[centos@node-3 ~]$ docker network ls
+</code></pre>
+<p>If the container for your service is <strong>not</strong> running here, you won&#39;t see the <code>my_overlay</code> network, since overlays only operate on nodes running containers attached to the overlay. On the other hand, if your container did get scheduled on <code>node-3</code>, you&#39;ll be able to see <code>my-overlay</code> as you should expect.</p>
+</li>
+<li><p>Connect to any manager node (<code>node-0</code>, <code>node-1</code> or <code>node-2</code>) and list the networks again. This time you will be able to see the network <em>whether or not</em> this manager has a container running on it for your <code>pinger</code> service; all managers maintain knowledge of all overlay networks.</p>
+</li>
+<li><p>On the same manager, inspect the <code>my_overlay</code> network again. If this manager does happen to have a container for the service scheduled on it, you&#39;ll be able to see the <code>Peers</code> list like above; if there is no container scheduled for the service on this node, the <code>Peers</code> list will be absent. <code>Peers</code> are maintained by Swarm&#39;s gossip control plane, which is scoped to only include nodes with running containers attached to the same overlay network.</p>
+</li>
+</ol>
+<h2 id="scaling-a-service">Scaling a Service</h2>
+<ol>
+<li><p>Back on a manager node, scale up the number of concurrent tasks that our <code>alpine</code> service is running:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service update pinger --replicas=8
+
+pinger
+overall progress: 8 out of 8 tasks 
+1/8: running   [==================================================&gt;] 
+2/8: running   [==================================================&gt;] 
+3/8: running   [==================================================&gt;] 
+4/8: running   [==================================================&gt;] 
+5/8: running   [==================================================&gt;] 
+6/8: running   [==================================================&gt;] 
+7/8: running   [==================================================&gt;] 
+8/8: running   [==================================================&gt;] 
+verify: Service converged
+</code></pre>
+</li>
+<li><p>Now run <code>docker service ps pinger</code> to inspect the service. How were tasks distributed across your swarm?</p>
+</li>
+<li><p>Use <code>docker network inspect my_overlay</code> again on a node that has a <code>pinger</code> container running. More nodes appear connected to this network under the <code>Peers</code> key, since all these nodes started gossiping amongst themselves when they attached containers to the <code>my_overlay</code> network.</p>
+</li>
+</ol>
+<h2 id="inspecting-service-logs">Inspecting Service Logs</h2>
+<ol>
+<li><p>In a previous step, you looked at the container logs for an individual task in your service; manager nodes can assemble all logs for all tasks of a given service by doing:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service logs pinger
+</code></pre>
+<p>The ping logs for all 8 pinging containers will be displayed.</p>
+</li>
+<li><p>If instead you&#39;d like to see the logs of a single task, on a manager node run <code>docker service ps pinger</code>, choose any task ID, and run <code>docker service logs &lt;task ID&gt;</code>. The logs of the individual task are returned; compare this to what you did above to fetch the same information with <code>docker container logs</code>.</p>
+</li>
+</ol>
+<h2 id="scheduling-topology-aware-services">Scheduling Topology-Aware Services</h2>
+<p>By default, the Swarm scheduler will try to schedule an equal number of containers on all nodes, but in practice it is wise to consider datacenter segmentation; spreading tasks across datacenters or availability zones keeps the service available even when one such segment goes down.</p>
+<ol>
+<li><p>Add a label <code>datacenter</code> with value <code>east</code> to two nodes of your swarm:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker node update --label-add datacenter=east node-0
+[centos@node-0 ~]$ docker node update --label-add datacenter=east node-1
+</code></pre>
+</li>
+<li><p>Add a label <code>datacenter</code> with value <code>west</code> to the other two nodes:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker node update --label-add datacenter=west node-2
+[centos@node-0 ~]$ docker node update --label-add datacenter=west node-3
+</code></pre>
+</li>
+<li><p>Create a service using the <code>--placement-pref</code> flag to spread across node labels:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service create --name my_proxy \
+    --replicas=2 --publish 8000:80 \
+    --placement-pref spread=node.labels.datacenter \
+    nginx
+</code></pre>
+<p>There should be <code>nginx</code> containers present on nodes with every possible value of the <code>node.labels.datacenter</code> label, one in <code>datacenter=east</code> nodes, and one in <code>datacenter=west</code> nodes.</p>
+</li>
+<li><p>Use <code>docker service ps my_proxy</code> as above to check that replicas got spread across the datacenter labels.</p>
+</li>
+</ol>
+<h2 id="updating-service-configuration">Updating Service Configuration</h2>
+<ol>
+<li><p>If a container doesn&#39;t need to write to its filesystem, it should <em>always</em> be run in read-only mode, for security purposes. Update your service to use read-only containers:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service update pinger --read-only
+
+pinger
+overall progress: 2 out of 8 tasks 
+1/8: running   [==================================================&gt;] 
+2/8: running   [==================================================&gt;] 
+3/8: ready     [======================================&gt;            ] 
+4/8:   
+5/8:   
+6/8:   
+7/8:   
+8/8:
+</code></pre>
+<p>Over the next few seconds, you should see tasks for the pinger service shutting down and restarting; this is the swarm manager replacing old containers which no longer match their desired state (using a read-only filesystem), with new containers that match the new configuration.</p>
+<p>Once all containers for the pinger service have been restarted, try connecting to the container and creating a file to convince yourself this worked as expected.</p>
+</li>
+</ol>
+<h2 id="cleanup">Cleanup</h2>
+<ol>
+<li><p>Remove all existing services, in preparation for future exercises:</p>
+<pre><code class="lang-bash">[centos@node-0 ~]$ docker service rm $(docker service ls -q)
+</code></pre>
+</li>
+</ol>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this exercise, we saw the basics of creating, scheduling and updating services. A common mistake people make is thinking that a service is just the containers scheduled by the service; in fact, a Docker service is the definition of <em>desired state</em> for those containers. Changing a service definition does not in general change containers directly; it causes them to get rescheduled by Swarm in order to match their new desired state.</p>
+
+        </div>        
+    </div>
+    <div class="row">
+        <ul class="mt-article-pagination" style="display:block;">
+        </ul>
+    </div>
+</div>
+    <div class="footer"></div>
+</body>
