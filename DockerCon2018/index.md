@@ -11,19 +11,29 @@ Some useful exercises and workshop from DockerCon Europe 2018
 
 #### Docker Fundamental
 
-- [Docker Fundamental Lab Exercise](https://dockercon2018.felix.ng/docker-fundamentals-lab/) 
+- [Docker Fundamental Lab Exercises](https://dockercon2018.felix.ng/docker-fundamentals-lab/) 
 
-#### Docker Enterprise Developer
+#### Docker for Enterprise Developers
 
-- [Docker for Enterprise Developers Lab Exercise](https://dockercon2018.felix.ng/docker-for-enterprise-developers-lab/) 
+- [Docker for Enterprise Developers Slides](https://dockercon2018.felix.ng/docker-for-enterprise-developers-slides/) 
 
-- [Docker for Enterprise Developers Lab Exercise](https://dockercon2018.felix.ng/docker-for-enterprise-developers-slides/) 
+- [Docker for Enterprise Developers Lab Exercises](https://dockercon2018.felix.ng/docker-for-enterprise-developers-lab/) 
 
 #### Dockerizing Legacy App
+
+- [Video (.NET)](https://www.youtube.com/playlist?list=PLkA60AVN3hh8mDYH0V8XpLpjzDHXrReFN)
+
+- [Video (Java)](https://www.youtube.com/playlist?list=PLkA60AVN3hh8g4jRgxQQM7nlpoC9wqJml)
+
+- [Demos (Github)](https://github.com/sixeyed/presentations/tree/master/dockercon/2018-barcelona/patterns-app-modernization)
 
 #### Voting App
 
 #### Migrating .NET App to Docker Workshop 
+
+- [Slides](https://dceu18.dwwx.space/)
+
+- [Demo App (Github)](https://github.com/sixeyed/presentations/tree/master/prognet/2018-modernizing-netfx-apps-with-docker)
 
 #### Logging and Monitoring Workshop 
 
