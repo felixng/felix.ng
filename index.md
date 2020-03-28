@@ -11,9 +11,7 @@ Strong believer of side projects and indie businesses. Check out what I am worki
 
 #### 💻 Work
 
-Previously worked as a proper corporate monkey - a Web Developer at [Euromoney](http://www.euromoneyplc.com/){:target="_blank"}, one of Europe's largest business and financial magazine publishers. Worked in the Hong Kong office, and then relocated to their London headquarters.
-
-Now Software Developer at [Trainline](https://thetrainline.com/){:target="_blank"}, coding all the payments related services and APIs.
+Software Developer at [Trainline](https://thetrainline.com/){:target="_blank"}, started working on their desktop website last year.  Previously handling all their payments related backend services and APIs.
 
 #### 🚀 Side Projects
 
@@ -21,19 +19,12 @@ Now Software Developer at [Trainline](https://thetrainline.com/){:target="_blank
 
 [MVMT](https://mvmt.felix.ng){:target="_blank"}, a directory of the top movement related studios and centres in London. [Project Curious Name](https://curiousincident.herokuapp.com/){:target="_blank"} that calculates if the alphabets of your name add up to a prime number. Inspired by the awards-winning theatrical play [The Curious Incident of the Dog in the Night-Time](https://www.nationaltheatre.org.uk/shows/the-curious-incident-of-the-dog-in-the-night-time){:target="_blank"}, where they have a small price for audience members with a prime number name.
 
-None has worked out well enough to make me good money, but none has stopped me from keep on trying. 
-<!-- I also keep a [list](/inspirations) of people/projects that keep on inspiring me. -->
+None has worked out well enough, but none has stopped me from keep on trying. 
+
+Recently started [Circusbase](https://circusbase.com){:target="_blank"} and [The Shows Must Go Online](https://theshowsmustgo.online/){:target="_blank"}.
 
 #### 🏋 What else do I do?
 
 I code and I travel. I go to theatre, a lot. I also dance, tumble and practise [handbalancing](http://thecircusdictionary.com/moves/?category=hand-balance){:target="_blank"}.
 
 Trying to bulk up, as well as keeping and/or improving my mobility so that I can continue doing these things.
-
-<!-- #### 🙌 Successes
-
-Relocated across the globe. Lived in three continents. Travel often, and relatively healthy.
-
-#### 🤦‍ Failures
-
-Yet to figure out what I actually want. Still being a corporate monkey of some sort.  Continously define myself by other people's view, yet find a way to accept myself as who I am. Hardly save any money. -->
